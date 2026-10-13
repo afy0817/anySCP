@@ -1,0 +1,37 @@
+{
+  "search": {
+    "placeholder": "찾기",
+    "label": "터미널 검색",
+    "matchCount": "{{index}}/{{total}}",
+    "noResults": "결과 없음",
+    "prevTitle": "이전 결과 (Shift+Enter)",
+    "prevLabel": "이전 결과",
+    "nextTitle": "다음 결과 (Enter)",
+    "nextLabel": "다음 결과",
+    "matchCaseTitle": "대/소문자 구분",
+    "matchCaseLabel": "대/소문자 구분 켜기/끄기",
+    "regexTitle": "정규식 사용",
+    "regexLabel": "정규식 켜기/끄기",
+    "closeTitle": "닫기 (Escape)",
+    "closeLabel": "검색 닫기"
+  },
+  "pane": {
+    "splitRight": "오른쪽으로 분할",
+    "splitRightTitle": "오른쪽으로 분할 (⌘D)",
+    "splitDown": "아래로 분할",
+    "splitDownTitle": "아래로 분할 (⇧⌘D)",
+    "zoom": "창 확대",
+    "unzoom": "창 확대 해제",
+    "zoomTitle": "확대 (⇧⌘↵)",
+    "unzoomTitle": "확대 해제 (⇧⌘↵)",
+    "close": "창 닫기",
+    "closeTitle": "창 닫기 (⌘W)"
+  },
+  "disconnect": {
+    "errorLabel": "연결 오류",
+    "lostLabel": "연결 끊김",
+    "connecting": "연결 중",
+    "closeSession": "세션 닫기",
+    "reconnectFailed": "다시 연결하지 못했어요"
+  }
+}

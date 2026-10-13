@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Cloud, Pencil, Copy, Trash2, FolderOpen } from "lucide-react";
 import type { S3Connection } from "../../types";
 import { ContextMenu } from "../shared/ContextMenu";
@@ -25,12 +26,13 @@ const ENV_BADGE_CLASSES: Record<EnvironmentValue, string> = {
   testing:    "bg-[oklch(0.700_0.150_250/0.15)] text-[oklch(0.700_0.150_250)]",
 };
 
-const ENV_LABELS: Record<EnvironmentValue, string> = {
-  production: "PROD",
-  staging:    "STAGE",
-  dev:        "DEV",
-  testing:    "TEST",
-};
+// Badge text is translated at render time (environment.badge.* in dashboard).
+const ENV_LABEL_KEYS = {
+  production: "environment.badge.production",
+  staging:    "environment.badge.staging",
+  dev:        "environment.badge.dev",
+  testing:    "environment.badge.testing",
+} as const satisfies Record<EnvironmentValue, string>;
 
 function isEnvironmentValue(val: string): val is EnvironmentValue {
   return val === "production" || val === "staging" || val === "dev" || val === "testing";
@@ -39,6 +41,7 @@ function isEnvironmentValue(val: string): val is EnvironmentValue {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function S3Card({ conn, onConnect, onEdit, onDuplicate, onDelete }: S3CardProps) {
+  const { t } = useTranslation(["dashboard", "common"]);
   const displayName = conn.label;
   const accentColor = conn.color || getHostColor(conn.label);
 
@@ -65,10 +68,10 @@ export function S3Card({ conn, onConnect, onEdit, onDuplicate, onDelete }: S3Car
   };
 
   const contextItems = [
-    { label: "Explore", icon: FolderOpen, onClick: () => onConnect(conn) },
-    { label: "Edit", icon: Pencil, onClick: () => onEdit(conn) },
-    { label: "Duplicate", icon: Copy, onClick: () => onDuplicate(conn) },
-    { label: "Delete", icon: Trash2, danger: true, separator: true, onClick: () => setConfirmDelete(true) },
+    { label: t("s3Card.explore"), icon: FolderOpen, onClick: () => onConnect(conn) },
+    { label: t("common:actions.edit"), icon: Pencil, onClick: () => onEdit(conn) },
+    { label: t("common:actions.duplicate"), icon: Copy, onClick: () => onDuplicate(conn) },
+    { label: t("common:actions.delete"), icon: Trash2, danger: true, separator: true, onClick: () => setConfirmDelete(true) },
   ];
 
   return (
@@ -82,7 +85,7 @@ export function S3Card({ conn, onConnect, onEdit, onDuplicate, onDelete }: S3Car
         onClick={() => onConnect(conn)}
         onKeyDown={handleKeyDown}
         onContextMenu={handleContextMenu}
-        title={`Connect to ${displayName}`}
+        title={t("card.connectTitle", { name: displayName })}
         className={[
           // grab/grabbing communicates the card is draggable; a plain click still
           // connects (drag needs a 5px move to activate first).
@@ -107,9 +110,9 @@ export function S3Card({ conn, onConnect, onEdit, onDuplicate, onDelete }: S3Car
         <CardActionStrip>
           <CardActionButton
             icon={FolderOpen}
-            label="Explore"
+            label={t("s3Card.explore")}
             onClick={() => onConnect(conn)}
-            ariaLabel={`Open explorer for ${displayName}`}
+            ariaLabel={t("card.openExplorerAria", { name: displayName })}
             testId={`s3-card-${conn.id}-explorer`}
           />
         </CardActionStrip>
@@ -142,7 +145,7 @@ export function S3Card({ conn, onConnect, onEdit, onDuplicate, onDelete }: S3Car
                   ENV_BADGE_CLASSES[env],
                 ].join(" ")}
               >
-                {ENV_LABELS[env]}
+                {t(ENV_LABEL_KEYS[env])}
               </span>
             )}
           </div>
@@ -159,8 +162,8 @@ export function S3Card({ conn, onConnect, onEdit, onDuplicate, onDelete }: S3Car
 
       <ConfirmDangerDialog
         open={confirmDelete}
-        title="Delete this S3 connection?"
-        message="This connection will be permanently removed."
+        title={t("s3Card.deleteTitle")}
+        message={t("s3Card.deleteMessage")}
         onCancel={() => setConfirmDelete(false)}
         onConfirm={() => {
           setConfirmDelete(false);

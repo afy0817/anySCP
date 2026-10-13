@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   X,
   Code,
@@ -32,6 +33,18 @@ const PAGE_ICONS: Record<PageId, React.ElementType> = {
   transfers: ArrowUpDown,
 };
 
+// Page tabs are rendered from their page id (app namespace keys), not from the
+// label stored at creation, so open page tabs follow a live language switch.
+// The stored label stays English and is still exposed as data-tab-label.
+const PAGE_LABEL_KEYS = {
+  hosts: "pages.hosts",
+  snippets: "pages.snippets",
+  "port-forwarding": "pages.portForwarding",
+  history: "pages.history",
+  settings: "pages.settings",
+  transfers: "pages.transfers",
+} as const satisfies Record<PageId, string>;
+
 function getTabIcon(tab: UnifiedTab): React.ElementType {
   if (tab.type === "terminal") return TerminalSquare;
   if (tab.type === "sftp") return FolderOpen;
@@ -55,6 +68,7 @@ const CHEVRON_BTN =
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function UnifiedTabBar() {
+  const { t } = useTranslation("app");
   const tabOrder = useTabStore((s) => s.tabOrder);
   const tabs = useTabStore((s) => s.tabs);
   const activeTabId = useTabStore((s) => s.activeTabId);
@@ -151,7 +165,7 @@ export function UnifiedTabBar() {
           type="button"
           onClick={() => scrollTabs(-1)}
           disabled={!canLeft}
-          aria-label="Scroll tabs left"
+          aria-label={t("tabBar.scrollLeft")}
           className={`${CHEVRON_BTN} mr-1`}
         >
           <ChevronLeft size={16} strokeWidth={2} aria-hidden="true" />
@@ -161,7 +175,7 @@ export function UnifiedTabBar() {
         ref={scrollRef}
         className="flex items-center gap-2.5 overflow-x-auto overflow-y-hidden flex-1 min-w-0 [&::-webkit-scrollbar]:hidden"
         role="tablist"
-        aria-label="Open sessions"
+        aria-label={t("tabBar.openSessions")}
       >
         {tabOrder.map((tabId) => {
           const tab = tabs.get(tabId);
@@ -169,6 +183,7 @@ export function UnifiedTabBar() {
 
           const isActive = tabId === activeTabId;
           const Icon = getTabIcon(tab);
+          const label = tab.type === "page" ? t(PAGE_LABEL_KEYS[tab.page]) : tab.label;
 
           // Terminal-specific metadata
           let statusDot: string | null = null;
@@ -209,7 +224,7 @@ export function UnifiedTabBar() {
               // Middle-click closes the tab, like a browser.
               onAuxClick={(e) => { if (e.button === 1 && closeable) { e.preventDefault(); void handleClose(tabId, tab, e); } }}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setActiveTab(tabId); } }}
-              title={tab.label + (paneCount > 1 ? ` (${paneCount} panes)` : "")}
+              title={paneCount > 1 ? t("tabBar.titleWithPanes", { label, panes: paneCount }) : label}
               className={[
                 "group relative flex items-center gap-2 px-3.5 h-[32px] shrink-0 max-w-[220px]",
                 "text-[length:var(--text-sm)] leading-none rounded-md cursor-pointer",
@@ -237,9 +252,9 @@ export function UnifiedTabBar() {
               {/* Label — the wrapper reserves the bold (active) width so
                   toggling font-medium on activate/deactivate doesn't resize the
                   tab and shift its neighbours (see .label-stable-bold). */}
-              <span data-label={tab.label} className="label-stable-bold">
+              <span data-label={label} className="label-stable-bold">
                 <span className={`truncate ${isActive ? "font-medium" : ""}`}>
-                  {tab.label}
+                  {label}
                 </span>
               </span>
 
@@ -261,7 +276,7 @@ export function UnifiedTabBar() {
 
               {/* Zoom indicator */}
               {isZoomed && (
-                <span className="shrink-0 text-accent" aria-hidden="true" title="Zoomed pane">
+                <span className="shrink-0 text-accent" aria-hidden="true" title={t("tabBar.zoomedPane")}>
                   <Maximize2 size={11} strokeWidth={2} />
                 </span>
               )}
@@ -280,7 +295,7 @@ export function UnifiedTabBar() {
                     "transition-all duration-[var(--duration-fast)]",
                     "focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                   ].join(" ")}
-                  aria-label={`Close ${tab.label}`}
+                  aria-label={t("tabBar.closeTab", { label })}
                   tabIndex={-1}
                 >
                   <X size={12} strokeWidth={2} aria-hidden="true" />
@@ -297,7 +312,7 @@ export function UnifiedTabBar() {
           type="button"
           onClick={() => scrollTabs(1)}
           disabled={!canRight}
-          aria-label="Scroll tabs right"
+          aria-label={t("tabBar.scrollRight")}
           className={`${CHEVRON_BTN} ml-1`}
         >
           <ChevronRight size={16} strokeWidth={2} aria-hidden="true" />
@@ -311,8 +326,8 @@ export function UnifiedTabBar() {
         <div className="flex items-center gap-1 pl-2 shrink-0">
           <button
             onClick={toggleSnippetPanel}
-            title={`Snippets (${SNIPPET_SHORTCUT})`}
-            aria-label="Open snippet palette"
+            title={t("tabBar.snippetsTitle", { shortcut: SNIPPET_SHORTCUT })}
+            aria-label={t("tabBar.openSnippetPalette")}
             aria-pressed={snippetPanelOpen}
             className={[
               "flex items-center gap-1.5 h-7 px-2 rounded-md border shrink-0",
@@ -325,7 +340,7 @@ export function UnifiedTabBar() {
             ].join(" ")}
           >
             <Code size={14} strokeWidth={1.8} aria-hidden="true" />
-            <span>Snippets</span>
+            <span>{t("tabBar.snippets")}</span>
           </button>
         </div>
       )}

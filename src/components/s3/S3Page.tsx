@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Cloud, Search, Trash2, FolderOpen, Copy, Pencil } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import type { S3Connection } from "../../types";
 import { useS3Store } from "../../stores/s3-store";
 import { S3Browser } from "./S3Browser";
@@ -9,7 +11,24 @@ import { ConfirmDangerDialog } from "../shared/ConfirmDangerDialog";
 import type { ContextMenuItem } from "../shared/ContextMenu";
 import type { S3Session } from "../../stores/s3-store";
 
+// Display labels for the environment badge. The stored values ("production",
+// …) drive the badge color below, so only the rendered text is translated;
+// unknown values are shown as-is.
+const ENV_KEYS = {
+  production: "environments.production",
+  staging: "environments.staging",
+  dev: "environments.dev",
+  testing: "environments.testing",
+} as const;
+
+function envLabel(t: TFunction<"s3">, env: string): string {
+  return Object.prototype.hasOwnProperty.call(ENV_KEYS, env)
+    ? t(ENV_KEYS[env as keyof typeof ENV_KEYS])
+    : env;
+}
+
 export function S3Page() {
+  const { t } = useTranslation(["s3", "common"]);
   const sessions = useS3Store((s) => s.sessions);
   const activeS3SessionId = useS3Store((s) => s.activeS3SessionId);
   const setActiveS3Session = useS3Store((s) => s.setActiveS3Session);
@@ -54,7 +73,7 @@ export function S3Page() {
       // Reconnect original to get credentials, then save a copy
       // Simpler: just create a new DB entry (credentials won't be copied — user will need to re-enter)
       await invoke("s3_connect", {
-        label: `${conn.label} (copy)`,
+        label: t("page.copyLabel", { label: conn.label }),
         provider: conn.provider,
         bucketName: conn.bucket ?? "",
         region: conn.region,
@@ -104,18 +123,18 @@ export function S3Page() {
     const conn = savedConnections.find((c) => c.id === session.sessionId);
     return [
       {
-        label: "Open",
+        label: t("common:actions.open"),
         icon: FolderOpen,
         onClick: () => setActiveS3Session(session.sessionId),
       },
       ...(conn ? [{
-        label: "Duplicate",
+        label: t("common:actions.duplicate"),
         icon: Copy,
         separator: true as const,
         onClick: () => void handleDuplicate(conn),
       }] : []),
       {
-        label: "Disconnect",
+        label: t("common:actions.disconnect"),
         icon: Trash2,
         separator: !conn ? true as const : undefined,
         danger: true as const,
@@ -139,9 +158,9 @@ export function S3Page() {
 
           {/* Page title */}
           <div>
-            <h1 className="text-[length:var(--text-lg)] font-semibold text-text-primary">Cloud Storage</h1>
+            <h1 className="text-[length:var(--text-lg)] font-semibold text-text-primary">{t("page.title")}</h1>
             <p className="text-[length:var(--text-xs)] text-text-muted mt-1">
-              Browse and manage files in S3 buckets and S3-compatible storage services like MinIO, R2, and Wasabi
+              {t("page.subtitle")}
             </p>
           </div>
 
@@ -158,8 +177,8 @@ export function S3Page() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
-              placeholder="Search connections..."
-              aria-label="Search S3 connections"
+              placeholder={t("page.searchPlaceholder")}
+              aria-label={t("page.searchLabel")}
               className={[
                 "w-full pl-10 pr-4 py-2.5 rounded-xl text-[length:var(--text-sm)]",
                 "bg-bg-surface border border-border text-text-primary placeholder:text-text-muted",
@@ -182,7 +201,7 @@ export function S3Page() {
               ].join(" ")}
             >
               <Plus size={14} strokeWidth={2.2} />
-              New Connection
+              {t("page.newConnection")}
             </button>
           </div>
 
@@ -190,7 +209,7 @@ export function S3Page() {
           {savedConnections.filter((c) => !sessions.has(c.id)).length > 0 && (
             <section>
               <h2 className="text-[length:var(--text-xs)] font-semibold uppercase tracking-widest text-text-muted mb-3">
-                Saved
+                {t("page.saved")}
               </h2>
               <div className="grid grid-cols-3 gap-2.5">
                 {savedConnections
@@ -214,7 +233,7 @@ export function S3Page() {
           {/* Active connections */}
           <section>
             <h2 className="text-[length:var(--text-xs)] font-semibold uppercase tracking-widest text-text-muted mb-3">
-              Active
+              {t("page.active")}
             </h2>
 
             {filtered.length > 0 ? (
@@ -253,7 +272,7 @@ export function S3Page() {
                                 conn.environment === "staging" ? "bg-status-connecting/15 text-status-connecting" :
                                 "bg-accent/15 text-accent",
                               ].join(" ")}>
-                                {conn.environment}
+                                {envLabel(t, conn.environment)}
                               </span>
                             )}
                           </div>
@@ -268,16 +287,16 @@ export function S3Page() {
               </div>
             ) : sessionList.length > 0 && query.trim() ? (
               <p className="text-[length:var(--text-sm)] text-text-muted py-8 text-center">
-                No connections match &ldquo;{query}&rdquo;
+                {t("page.noMatch", { query })}
               </p>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
                 <Cloud size={30} strokeWidth={1.2} className="text-text-muted/30" />
                 <p className="text-[length:var(--text-sm)] text-text-muted">
-                  No S3 connections
+                  {t("page.emptyTitle")}
                 </p>
                 <p className="text-[length:var(--text-xs)] text-text-muted/60 text-center max-w-xs">
-                  Connect to Amazon S3, MinIO, Cloudflare R2, or any S3-compatible storage
+                  {t("page.emptyHint")}
                 </p>
               </div>
             )}
@@ -299,23 +318,23 @@ export function S3Page() {
         <ContextMenu
           items={[
             {
-              label: "Connect",
+              label: t("common:actions.connect"),
               icon: FolderOpen,
               onClick: () => void handleReconnect(savedContextMenu.conn),
             },
             {
-              label: "Edit",
+              label: t("common:actions.edit"),
               icon: Pencil,
               onClick: () => setEditingConnection(savedContextMenu.conn),
             },
             {
-              label: "Duplicate",
+              label: t("common:actions.duplicate"),
               icon: Copy,
               separator: true,
               onClick: () => void handleDuplicate(savedContextMenu.conn),
             },
             {
-              label: "Delete",
+              label: t("common:actions.delete"),
               icon: Trash2,
               danger: true,
               onClick: () => setDeletingSavedConn(savedContextMenu.conn),
@@ -341,8 +360,10 @@ export function S3Page() {
 
       <ConfirmDangerDialog
         open={deletingSavedConn !== null}
-        title="Delete this S3 connection?"
-        message="This connection will be permanently removed."
+        title={t("page.deleteTitle")}
+        message={t("page.deleteMessage")}
+        confirmLabel={t("page.deleteConfirm")}
+        cancelLabel={t("common:actions.cancel")}
         onCancel={() => setDeletingSavedConn(null)}
         onConfirm={() => {
           const conn = deletingSavedConn;
@@ -367,6 +388,7 @@ function S3ConnectionCard({
   onClick: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
 }) {
+  const { t } = useTranslation("s3");
   const initial = conn.label.charAt(0).toUpperCase();
   const bgColor = conn.color ?? "var(--color-bg-muted)";
   const textColor = conn.color ? "var(--color-text-inverse)" : "var(--color-text-muted)";
@@ -402,7 +424,7 @@ function S3ConnectionCard({
                 conn.environment === "staging" ? "bg-status-connecting/15 text-status-connecting" :
                 "bg-accent/15 text-accent",
               ].join(" ")}>
-                {conn.environment}
+                {envLabel(t, conn.environment)}
               </span>
             )}
           </div>

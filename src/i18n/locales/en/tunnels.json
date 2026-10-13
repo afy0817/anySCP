@@ -1,0 +1,54 @@
+{
+  "page": {
+    "title": "Tunnels",
+    "subtitle": "Forward local ports to remote services through SSH tunnels for secure database, API, and service access",
+    "searchPlaceholder": "Search rules...",
+    "searchAria": "Search forwarding rules",
+    "newRule": "New Rule",
+    "standalone": "Standalone",
+    "noMatch": "No rules match “{{query}}”",
+    "emptyTitle": "No forwarding rules yet",
+    "emptyHint": "Forward local ports to remote services through SSH tunnels",
+    "deleteTitle": "Delete this tunnel rule?",
+    "deleteMessage": "This tunnel rule will be permanently removed."
+  },
+  "menu": {
+    "stopTunnel": "Stop Tunnel",
+    "startTunnel": "Start Tunnel"
+  },
+  "card": {
+    "defaultLabel": "Port {{port}}",
+    "stopTunnel": "Stop tunnel",
+    "startTunnel": "Start tunnel",
+    "copyAddress": "Copy localhost address",
+    "connections": "{{connections}} conn",
+    "auto": "auto"
+  },
+  "dialog": {
+    "titleEdit": "Edit Rule",
+    "titleNew": "New Rule",
+    "sections": {
+      "connection": "Connection",
+      "ports": "Ports",
+      "options": "Options"
+    },
+    "fields": {
+      "host": "Host",
+      "label": "Label",
+      "labelPlaceholder": "My Database",
+      "description": "Description",
+      "descriptionPlaceholder": "Production read replica for analytics...",
+      "localPort": "Local Port",
+      "remotePort": "Remote Port",
+      "bindAddress": "Bind Address",
+      "autoStart": "Auto-start",
+      "autoStartHint": "Start tunnel when host connects"
+    },
+    "noHosts": "No saved hosts. Add a host first.",
+    "optional": "(optional)",
+    "bind": {
+      "local": "127.0.0.1 (local only)",
+      "all": "0.0.0.0 (all interfaces)"
+    }
+  }
+}

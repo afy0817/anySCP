@@ -1,0 +1,54 @@
+{
+  "page": {
+    "title": "터널",
+    "subtitle": "SSH 터널로 로컬 포트를 원격 서비스에 포워딩해 데이터베이스, API, 각종 서비스에 안전하게 접근할 수 있어요",
+    "searchPlaceholder": "규칙 검색...",
+    "searchAria": "포워딩 규칙 검색",
+    "newRule": "새 규칙",
+    "standalone": "호스트 미지정",
+    "noMatch": "“{{query}}”와(과) 일치하는 규칙이 없어요",
+    "emptyTitle": "아직 포워딩 규칙이 없어요",
+    "emptyHint": "SSH 터널로 로컬 포트를 원격 서비스에 포워딩해요",
+    "deleteTitle": "이 터널 규칙을 삭제할까요?",
+    "deleteMessage": "이 터널 규칙이 영구적으로 삭제돼요."
+  },
+  "menu": {
+    "stopTunnel": "터널 중지",
+    "startTunnel": "터널 시작"
+  },
+  "card": {
+    "defaultLabel": "포트 {{port}}",
+    "stopTunnel": "터널 중지",
+    "startTunnel": "터널 시작",
+    "copyAddress": "localhost 주소 복사",
+    "connections": "연결 {{connections}}개",
+    "auto": "자동"
+  },
+  "dialog": {
+    "titleEdit": "규칙 편집",
+    "titleNew": "새 규칙",
+    "sections": {
+      "connection": "연결",
+      "ports": "포트",
+      "options": "옵션"
+    },
+    "fields": {
+      "host": "호스트",
+      "label": "표시 이름",
+      "labelPlaceholder": "내 데이터베이스",
+      "description": "설명",
+      "descriptionPlaceholder": "분석용 운영 DB 읽기 복제본...",
+      "localPort": "로컬 포트",
+      "remotePort": "원격 포트",
+      "bindAddress": "바인드 주소",
+      "autoStart": "자동 시작",
+      "autoStartHint": "호스트에 연결되면 터널을 자동으로 시작해요"
+    },
+    "noHosts": "저장된 호스트가 없어요. 먼저 호스트를 추가하세요.",
+    "optional": "(선택 사항)",
+    "bind": {
+      "local": "127.0.0.1 (이 컴퓨터만)",
+      "all": "0.0.0.0 (모든 네트워크 인터페이스)"
+    }
+  }
+}

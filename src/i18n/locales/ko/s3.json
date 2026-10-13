@@ -1,0 +1,70 @@
+{
+  "page": {
+    "title": "클라우드 스토리지",
+    "subtitle": "S3 버킷과 MinIO, R2, Wasabi 같은 S3 호환 스토리지의 파일을 탐색하고 관리할 수 있어요",
+    "searchPlaceholder": "연결 검색...",
+    "searchLabel": "S3 연결 검색",
+    "newConnection": "새 연결",
+    "saved": "저장됨",
+    "active": "활성",
+    "noMatch": "“{{query}}”에 해당하는 연결이 없어요",
+    "emptyTitle": "아직 S3 연결이 없어요",
+    "emptyHint": "Amazon S3, MinIO, Cloudflare R2 등 S3 호환 스토리지에 연결해 보세요",
+    "copyLabel": "{{label}} (사본)",
+    "deleteTitle": "이 S3 연결을 삭제할까요?",
+    "deleteMessage": "이 연결이 영구적으로 삭제돼요",
+    "deleteConfirm": "확인"
+  },
+  "environments": {
+    "none": "없음",
+    "production": "운영",
+    "staging": "스테이징",
+    "dev": "개발",
+    "testing": "테스트"
+  },
+  "dialog": {
+    "titleEdit": "연결 편집",
+    "titleNew": "S3에 연결",
+    "saving": "저장 중…",
+    "saveChanges": "변경 사항 저장",
+    "connecting": "연결 중…",
+    "saveFailed": "저장하지 못했어요",
+    "connectFailed": "연결하지 못했어요",
+    "sections": {
+      "provider": "제공업체",
+      "credentials": "자격 증명",
+      "connection": "연결",
+      "appearance": "모양",
+      "notes": "메모"
+    },
+    "fields": {
+      "service": "서비스",
+      "label": "표시 이름",
+      "optional": "(선택 사항)",
+      "labelPlaceholder": "내 S3 버킷",
+      "keepCredentials": "기존 자격 증명을 유지하려면 비워 두세요",
+      "accessKey": "액세스 키 ID",
+      "secretKey": "시크릿 액세스 키",
+      "region": "리전",
+      "bucket": "버킷",
+      "endpoint": "엔드포인트 URL",
+      "group": "그룹",
+      "noGroup": "그룹 없음",
+      "environment": "환경",
+      "color": "색상",
+      "colorOption": "색상 {{color}}",
+      "notes": "메모",
+      "notesPlaceholder": "이 연결에 대한 메모..."
+    }
+  },
+  "browser": {
+    "listBucketsFailed": "버킷 목록을 불러오지 못했어요",
+    "listObjectsFailed": "객체 목록을 불러오지 못했어요",
+    "switchBucketFailed": "버킷을 전환하지 못했어요",
+    "downloadTitle": "\"{{name}}\" 다운로드",
+    "uploadFileTitle": "파일 업로드",
+    "uploadFolderTitle": "폴더 업로드",
+    "buckets": "버킷",
+    "noBuckets": "버킷이 없어요"
+  }
+}

@@ -1,3 +1,5 @@
+import i18n from "../i18n";
+
 /**
  * Format a byte count to a human-readable string.
  * Examples: 0 → "0 B", 1024 → "1.0 KB", 1048576 → "1.0 MB"
@@ -26,9 +28,14 @@ export function formatSpeed(bps: number): string {
  */
 export function formatEta(secs: number | null): string {
   if (secs === null || secs <= 0) return "";
-  if (secs < 60) return `~${secs}s`;
-  if (secs < 3600) return `~${Math.floor(secs / 60)}m ${secs % 60}s`;
-  return `~${Math.floor(secs / 3600)}h ${Math.floor((secs % 3600) / 60)}m`;
+  if (secs < 60) return i18n.t("core:eta.seconds", { seconds: secs });
+  if (secs < 3600) {
+    return i18n.t("core:eta.minutesSeconds", { minutes: Math.floor(secs / 60), seconds: secs % 60 });
+  }
+  return i18n.t("core:eta.hoursMinutes", {
+    hours: Math.floor(secs / 3600),
+    minutes: Math.floor((secs % 3600) / 60),
+  });
 }
 
 import type { TransferStatusValue } from "../types";

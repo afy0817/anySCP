@@ -1,0 +1,39 @@
+{
+  "title": "기록",
+  "subtitle": "언제, 어느 호스트에, 어떤 사용자로 연결했는지 보여 주는 SSH 연결 기록",
+  "totalCount": "연결 {{total}}개",
+  "searchPlaceholder": "연결 기록 검색...",
+  "searchLabel": "연결 기록 검색",
+  "filterByHostLabel": "호스트별 필터",
+  "allHosts": "전체 호스트",
+  "entryTitle": "더블클릭: 다시 연결 · 오른쪽 클릭: 옵션",
+  "filterBy": "{{name}} 기록만 보기",
+  "loading": "불러오는 중...",
+  "loadMore": "더 불러오기",
+  "noMatch": "“{{query}}” 검색 결과가 없어요",
+  "empty": {
+    "title": "아직 연결 기록이 없어요",
+    "description": "호스트에 연결하면 여기에 SSH 연결 기록이 표시돼요"
+  },
+  "contextMenu": {
+    "terminal": "터미널",
+    "explorer": "파일 탐색기"
+  },
+  "deleteDialog": {
+    "title": "이 기록을 삭제할까요?",
+    "message": "이 기록이 영구히 삭제돼요"
+  },
+  "toasts": {
+    "deleteFailed": "기록을 삭제하지 못했어요"
+  },
+  "dateGroups": {
+    "today": "오늘",
+    "yesterday": "어제"
+  },
+  "relative": {
+    "justNow": "방금",
+    "minutesAgo": "{{n}}분 전",
+    "hoursAgo": "{{n}}시간 전",
+    "daysAgo": "{{n}}일 전"
+  }
+}

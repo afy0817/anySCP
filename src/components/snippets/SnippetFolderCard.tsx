@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Folder, Trash2 } from "lucide-react";
 import type { SnippetFolder } from "../../types";
 import { ContextMenu } from "../shared/ContextMenu";
@@ -23,6 +24,7 @@ export function SnippetFolderCard({
   onSelect,
   onDelete,
 }: SnippetFolderCardProps) {
+  const { t } = useTranslation("snippets");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -34,7 +36,7 @@ export function SnippetFolderCard({
 
   const contextItems = [
     {
-      label: "Delete Folder",
+      label: t("folderCard.deleteFolder"),
       icon: Trash2,
       danger: true,
       onClick: () => setConfirmDelete(true),
@@ -78,7 +80,7 @@ export function SnippetFolderCard({
             {folder.name}
           </p>
           <p className="text-[length:var(--text-xs)] text-text-muted mt-0.5">
-            {snippetCount === 1 ? "1 snippet" : `${snippetCount} snippets`}
+            {t("folderCard.snippetCount", { count: snippetCount })}
           </p>
         </div>
       </button>
@@ -93,8 +95,8 @@ export function SnippetFolderCard({
 
       <ConfirmDangerDialog
         open={confirmDelete}
-        title="Delete this folder?"
-        message="This folder will be permanently removed."
+        title={t("folderCard.deleteTitle")}
+        message={t("folderCard.deleteMessage")}
         onCancel={() => setConfirmDelete(false)}
         onConfirm={() => {
           setConfirmDelete(false);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
 import {
   Folder, Cloud, Server, Database, Globe, Shield, Code,
   Wifi, Home, Building2, Rocket, Wrench, Monitor, Lock,
@@ -9,28 +10,30 @@ import { ModalShell, BTN_GHOST, BTN_PRIMARY } from "../shared/ModalShell";
 
 // ─── Icon registry ───────────────────────────────────────────────────────────
 
-const GROUP_ICONS: { name: string; icon: React.ElementType }[] = [
-  { name: "Folder", icon: Folder },
-  { name: "Cloud", icon: Cloud },
-  { name: "Server", icon: Server },
-  { name: "Database", icon: Database },
-  { name: "Globe", icon: Globe },
-  { name: "Shield", icon: Shield },
-  { name: "Code", icon: Code },
-  { name: "Wifi", icon: Wifi },
-  { name: "Home", icon: Home },
-  { name: "Building2", icon: Building2 },
-  { name: "Rocket", icon: Rocket },
-  { name: "Wrench", icon: Wrench },
-  { name: "Monitor", icon: Monitor },
-  { name: "Lock", icon: Lock },
-  { name: "Zap", icon: Zap },
-  { name: "Cpu", icon: Cpu },
-  { name: "HardDrive", icon: HardDrive },
-  { name: "Network", icon: Network },
-  { name: "Radio", icon: Radio },
-  { name: "Warehouse", icon: Warehouse },
-];
+// `name` is persisted (group.icon) and matched in resolveGroupIcon — never
+// translate it; `labelKey` is the display-only tooltip / aria-label text.
+const GROUP_ICONS = [
+  { name: "Folder", labelKey: "groupModal.icons.folder", icon: Folder },
+  { name: "Cloud", labelKey: "groupModal.icons.cloud", icon: Cloud },
+  { name: "Server", labelKey: "groupModal.icons.server", icon: Server },
+  { name: "Database", labelKey: "groupModal.icons.database", icon: Database },
+  { name: "Globe", labelKey: "groupModal.icons.globe", icon: Globe },
+  { name: "Shield", labelKey: "groupModal.icons.shield", icon: Shield },
+  { name: "Code", labelKey: "groupModal.icons.code", icon: Code },
+  { name: "Wifi", labelKey: "groupModal.icons.wifi", icon: Wifi },
+  { name: "Home", labelKey: "groupModal.icons.home", icon: Home },
+  { name: "Building2", labelKey: "groupModal.icons.building", icon: Building2 },
+  { name: "Rocket", labelKey: "groupModal.icons.rocket", icon: Rocket },
+  { name: "Wrench", labelKey: "groupModal.icons.wrench", icon: Wrench },
+  { name: "Monitor", labelKey: "groupModal.icons.monitor", icon: Monitor },
+  { name: "Lock", labelKey: "groupModal.icons.lock", icon: Lock },
+  { name: "Zap", labelKey: "groupModal.icons.zap", icon: Zap },
+  { name: "Cpu", labelKey: "groupModal.icons.cpu", icon: Cpu },
+  { name: "HardDrive", labelKey: "groupModal.icons.hardDrive", icon: HardDrive },
+  { name: "Network", labelKey: "groupModal.icons.network", icon: Network },
+  { name: "Radio", labelKey: "groupModal.icons.radio", icon: Radio },
+  { name: "Warehouse", labelKey: "groupModal.icons.warehouse", icon: Warehouse },
+] as const satisfies readonly { name: string; labelKey: string; icon: React.ElementType }[];
 
 /** Resolve a stored icon name to its component. Falls back to Folder. */
 export function resolveGroupIcon(name: string | null | undefined): React.ElementType {
@@ -57,6 +60,7 @@ interface GroupModalProps {
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function GroupModal({ open, onClose, onSave, initial }: GroupModalProps) {
+  const { t } = useTranslation(["dashboard", "common"]);
   const [name, setName] = useState("");
   const [color, setColor] = useState(HOST_COLORS[4]);
   const [icon, setIcon] = useState("Folder");
@@ -79,7 +83,7 @@ export function GroupModal({ open, onClose, onSave, initial }: GroupModalProps) 
 
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) { setError("Group name is required"); return; }
+    if (!name.trim()) { setError(t("groupModal.nameRequired")); return; }
     setSaving(true);
     setError(null);
     try {
@@ -88,11 +92,11 @@ export function GroupModal({ open, onClose, onSave, initial }: GroupModalProps) 
       setError(
         err && typeof err === "object" && "message" in err
           ? String((err as { message: string }).message)
-          : "Failed to save group",
+          : t("groupModal.saveFailed"),
       );
       setSaving(false);
     }
-  }, [name, color, icon, onSave]);
+  }, [name, color, icon, onSave, t]);
 
   const SelectedIcon = resolveGroupIcon(icon);
 
@@ -109,7 +113,7 @@ export function GroupModal({ open, onClose, onSave, initial }: GroupModalProps) 
     <ModalShell
       open={open}
       onClose={onClose}
-      title={isEdit ? "Edit Group" : "New Group"}
+      title={isEdit ? t("groupModal.titleEdit") : t("groupModal.titleNew")}
       icon={SelectedIcon}
       maxWidth="sm"
       busy={saving}
@@ -117,7 +121,7 @@ export function GroupModal({ open, onClose, onSave, initial }: GroupModalProps) 
       footer={
         <>
           <button type="button" onClick={onClose} disabled={saving} className={BTN_GHOST}>
-            Cancel
+            {t("common:actions.cancel")}
           </button>
           <button
             form="group-modal-form"
@@ -126,7 +130,7 @@ export function GroupModal({ open, onClose, onSave, initial }: GroupModalProps) 
             disabled={saving || !name.trim()}
             className={BTN_PRIMARY}
           >
-            {saving ? "Saving…" : isEdit ? "Save" : "Create Group"}
+            {saving ? t("groupModal.saving") : isEdit ? t("common:actions.save") : t("groupModal.create")}
           </button>
         </>
       }
@@ -134,7 +138,7 @@ export function GroupModal({ open, onClose, onSave, initial }: GroupModalProps) 
       <form id="group-modal-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
           <label className={labelClass}>
-            Name <span className="text-status-error">*</span>
+            {t("groupModal.nameLabel")} <span className="text-status-error">*</span>
           </label>
           <input
             ref={nameRef}
@@ -142,14 +146,14 @@ export function GroupModal({ open, onClose, onSave, initial }: GroupModalProps) 
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="e.g., Production, Staging, Home Lab"
+            placeholder={t("groupModal.namePlaceholder")}
             disabled={saving}
             className={inputClass}
           />
         </div>
 
         <div>
-          <span className={labelClass}>Icon</span>
+          <span className={labelClass}>{t("groupModal.iconLabel")}</span>
           <div className="grid grid-cols-10 gap-1">
             {GROUP_ICONS.map((item) => {
               const Icon = item.icon;
@@ -160,8 +164,8 @@ export function GroupModal({ open, onClose, onSave, initial }: GroupModalProps) 
                   type="button"
                   onClick={() => setIcon(item.name)}
                   disabled={saving}
-                  title={item.name}
-                  aria-label={item.name}
+                  title={t(item.labelKey)}
+                  aria-label={t(item.labelKey)}
                   aria-pressed={isSelected}
                   className={[
                     "flex items-center justify-center w-8 h-8 rounded-lg",
@@ -180,7 +184,7 @@ export function GroupModal({ open, onClose, onSave, initial }: GroupModalProps) 
         </div>
 
         <div>
-          <span className={labelClass}>Color</span>
+          <span className={labelClass}>{t("groupModal.colorLabel")}</span>
           <div className="flex items-center gap-2 flex-wrap">
             {HOST_COLORS.map((c) => (
               <button
@@ -188,7 +192,7 @@ export function GroupModal({ open, onClose, onSave, initial }: GroupModalProps) 
                 type="button"
                 onClick={() => setColor(c)}
                 disabled={saving}
-                aria-label={`Color ${c}`}
+                aria-label={t("colorSwatch", { color: c })}
                 aria-pressed={color === c}
                 className={[
                   "w-7 h-7 rounded-full border-2",

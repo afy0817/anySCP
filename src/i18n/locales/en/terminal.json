@@ -1,0 +1,37 @@
+{
+  "search": {
+    "placeholder": "Find",
+    "label": "Search terminal",
+    "matchCount": "{{index}} of {{total}}",
+    "noResults": "No results",
+    "prevTitle": "Previous match (Shift+Enter)",
+    "prevLabel": "Previous match",
+    "nextTitle": "Next match (Enter)",
+    "nextLabel": "Next match",
+    "matchCaseTitle": "Match case",
+    "matchCaseLabel": "Toggle case sensitivity",
+    "regexTitle": "Use regex",
+    "regexLabel": "Toggle regex",
+    "closeTitle": "Close (Escape)",
+    "closeLabel": "Close search"
+  },
+  "pane": {
+    "splitRight": "Split right",
+    "splitRightTitle": "Split right (⌘D)",
+    "splitDown": "Split down",
+    "splitDownTitle": "Split down (⇧⌘D)",
+    "zoom": "Zoom pane",
+    "unzoom": "Unzoom pane",
+    "zoomTitle": "Zoom (⇧⌘↵)",
+    "unzoomTitle": "Unzoom (⇧⌘↵)",
+    "close": "Close pane",
+    "closeTitle": "Close pane (⌘W)"
+  },
+  "disconnect": {
+    "errorLabel": "Connection error",
+    "lostLabel": "Connection lost",
+    "connecting": "Connecting",
+    "closeSession": "Close session",
+    "reconnectFailed": "Reconnection failed"
+  }
+}

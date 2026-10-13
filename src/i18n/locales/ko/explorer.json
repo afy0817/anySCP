@@ -1,0 +1,156 @@
+{
+  "path": {
+    "current": "현재 경로",
+    "navigateTo": "{{path}} 폴더로 이동"
+  },
+  "toolbar": {
+    "goTo": "최상위({{root}})로 이동",
+    "goToRoot": "최상위로 이동",
+    "editPath": "현재 경로 편집",
+    "clickToType": "클릭해서 경로 입력",
+    "busy": "작업 진행 중",
+    "uploadFiles": "파일 업로드",
+    "uploadFolder": "폴더 업로드",
+    "newFile": "새 파일",
+    "newFolder": "새 폴더",
+    "enableSudo": "sudo 모드 켜기",
+    "disableSudo": "sudo 모드 끄기"
+  },
+  "dropZone": {
+    "dropFiles": "파일을 놓아 업로드",
+    "dropInto": "{{folder}} 폴더에 놓아 업로드"
+  },
+  "table": {
+    "renameLabel": "이름 변경",
+    "folderNamePlaceholder": "폴더 이름",
+    "newFolderNameLabel": "새 폴더 이름",
+    "newFileNameLabel": "새 파일 이름",
+    "columns": {
+      "name": "이름",
+      "size": "크기",
+      "modified": "수정일",
+      "permissions": "권한",
+      "class": "저장 클래스"
+    },
+    "empty": {
+      "title": "이 폴더는 비어 있어요",
+      "newFile": "새 파일",
+      "newFolder": "새 폴더",
+      "hint": "마우스 오른쪽 버튼을 클릭하면 더 많은 옵션을 볼 수 있어요"
+    },
+    "contentsLabel": "폴더 내용",
+    "dragCopy_other": "항목 {{count}}개 복사",
+    "dragMove_other": "항목 {{count}}개 이동 · ⌥ 누르면 복사"
+  },
+  "menu": {
+    "paste": "붙여넣기",
+    "newFile": "새 파일",
+    "newFolder": "새 폴더",
+    "downloadItems": "항목 {{count}}개 다운로드",
+    "copyItems": "항목 {{count}}개 복사",
+    "cutItems": "항목 {{count}}개 잘라내기",
+    "deleteItems": "항목 {{count}}개 삭제",
+    "editIn": "{{editor}}에서 편집",
+    "openWith": "다음으로 열기",
+    "download": "다운로드",
+    "downloadFolder": "폴더 다운로드",
+    "copyPresignedUrl": "미리 서명된 URL 복사",
+    "copyPath": "경로 복사",
+    "cut": "잘라내기",
+    "properties": "속성"
+  },
+  "deleteConfirm": {
+    "titleFile": "파일 삭제",
+    "titleDirectory": "폴더 삭제",
+    "titleMany": "항목 {{count}}개 삭제",
+    "singleBody": "항목이 영구적으로 삭제돼요.",
+    "singleDirExtra": "안에 있는 모든 내용도 함께 삭제돼요.",
+    "manyBody": "항목 {{count}}개가 영구적으로 삭제돼요.",
+    "manyDirsExtra": "폴더는 안에 있는 모든 내용까지 삭제돼요."
+  },
+  "properties": {
+    "dialogLabel": "{{name}} 속성",
+    "type": "종류",
+    "size": "크기",
+    "location": "위치",
+    "path": "경로",
+    "copyPath": "경로 복사",
+    "modified": "수정일",
+    "class": "저장 클래스",
+    "kinds": {
+      "symlink": "심볼릭 링크",
+      "directory": "폴더",
+      "file": "파일"
+    },
+    "permissions": "권한",
+    "readOnlySymlink": "읽기 전용 (심볼릭 링크)",
+    "perm": {
+      "owner": "소유자",
+      "group": "그룹",
+      "other": "기타",
+      "read": "읽기",
+      "write": "쓰기",
+      "execute": "실행"
+    },
+    "octal": "8진수",
+    "octalLabel": "8진수 권한",
+    "specialBitsPreserved": "특수 비트({{bits}})가 설정되어 있어요. 여기서는 편집할 수 없고, 적용해도 유지돼요.",
+    "specialBitsDropped": "특수 비트({{bits}})가 설정되어 있어요. 여기서는 편집할 수 없고, 하위 항목까지 적용하면 제거돼요.",
+    "recursive": "모든 하위 항목에도 권한 적용",
+    "partialApplied": "항목 {{applied}}개에 적용했어요. 오류 {{errors}}개가 발생했어요. {{first}}",
+    "partialErrors": "오류 {{errors}}개가 발생했어요. {{first}}",
+    "chmodFailed": "권한을 변경하지 못했어요"
+  },
+  "view": {
+    "uploadFailed": "업로드 실패: {{error}}",
+    "listFailed": "폴더 목록을 불러오지 못했어요",
+    "enableSudoFailed": "sudo 모드를 켜지 못했어요",
+    "disableSudoFailed": "sudo 모드를 끄지 못했어요",
+    "downloadDirTitle": "\"{{name}}\" 다운로드 위치 선택…",
+    "saveAsTitle": "\"{{name}}\" 다른 이름으로 저장…",
+    "downloadManyTitle": "항목 {{count}}개 다운로드 위치 선택…",
+    "preparingDownload": "다운로드 준비 중…",
+    "downloaded_other": "항목 {{count}}개를 다운로드했어요",
+    "downloadFailed": "다운로드 실패: {{error}}",
+    "uploadFileTitle": "파일 업로드",
+    "uploadFolderTitle": "폴더 업로드",
+    "pasteFailed": "붙여넣지 못했어요",
+    "moveFailed": "이동하지 못했어요",
+    "copyFailed": "복사하지 못했어요",
+    "unexpectedError": "예기치 않은 오류"
+  },
+  "dropOverwrite": {
+    "titleOne": "항목을 덮어쓸까요?",
+    "titleMany": "항목 {{count}}개를 덮어쓸까요?",
+    "confirmOne": "덮어쓰기",
+    "confirmMany": "{{count}}개 덮어쓰기",
+    "existsOne": "항목이 이미 이 위치에 있어요",
+    "existsMany": "이 위치에 이미 항목 {{count}}개가 있어요",
+    "note": "파일은 덮어쓰고, 폴더는 병합해서 안에 있는 같은 이름의 파일만 덮어써요"
+  },
+  "sessionPicker": {
+    "title": "파일 탐색기",
+    "subtitle": "파일 시스템을 탐색할 활성 SSH 세션을 선택해 주세요",
+    "activeSessions": "활성 세션",
+    "status": {
+      "connecting": "연결 중",
+      "connected": "연결됨",
+      "disconnecting": "연결 끊는 중",
+      "disconnected": "연결 끊김",
+      "error": "오류"
+    },
+    "openSftpTitle": "{{label}}에서 SFTP 열기",
+    "openBrowserLabel": "{{label}} 파일 탐색기 열기",
+    "opening": "여는 중…",
+    "openSftp": "SFTP 열기",
+    "openFailed": "SFTP 세션을 열지 못했어요",
+    "emptyTitle": "활성 SSH 세션이 없어요",
+    "emptyHint": "먼저 <hosts>호스트</hosts> 페이지에서 호스트에 연결한 다음, 여기로 돌아와 파일을 탐색하세요"
+  },
+  "tabs": {
+    "close": "{{label}} 닫기"
+  },
+  "page": {
+    "fallbackLabel": "파일 탐색기"
+  }
+}

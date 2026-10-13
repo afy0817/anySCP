@@ -1,0 +1,159 @@
+{
+  "path": {
+    "current": "Current path",
+    "navigateTo": "Navigate to {{path}}"
+  },
+  "toolbar": {
+    "goTo": "Go to {{root}}",
+    "goToRoot": "Go to root",
+    "editPath": "Edit current path",
+    "clickToType": "Click to type a path",
+    "busy": "Operation in progress",
+    "uploadFiles": "Upload files",
+    "uploadFolder": "Upload folder",
+    "newFile": "New file",
+    "newFolder": "New folder",
+    "enableSudo": "Enable sudo mode",
+    "disableSudo": "Disable sudo mode"
+  },
+  "dropZone": {
+    "dropFiles": "Drop files to upload",
+    "dropInto": "Drop to upload into {{folder}}"
+  },
+  "table": {
+    "renameLabel": "Rename file",
+    "folderNamePlaceholder": "Folder name",
+    "newFolderNameLabel": "New folder name",
+    "newFileNameLabel": "New file name",
+    "columns": {
+      "name": "Name",
+      "size": "Size",
+      "modified": "Modified",
+      "permissions": "Permissions",
+      "class": "Class"
+    },
+    "empty": {
+      "title": "This folder is empty",
+      "newFile": "New File",
+      "newFolder": "New Folder",
+      "hint": "Right-click for more options"
+    },
+    "contentsLabel": "Directory contents",
+    "dragCopy_one": "Copy {{count}} item",
+    "dragCopy_other": "Copy {{count}} items",
+    "dragMove_one": "Move {{count}} item · ⌥ to copy",
+    "dragMove_other": "Move {{count}} items · ⌥ to copy"
+  },
+  "menu": {
+    "paste": "Paste",
+    "newFile": "New File",
+    "newFolder": "New Folder",
+    "downloadItems": "Download {{count}} items",
+    "copyItems": "Copy {{count}} items",
+    "cutItems": "Cut {{count}} items",
+    "deleteItems": "Delete {{count}} items",
+    "editIn": "Edit in {{editor}}",
+    "openWith": "Open With",
+    "download": "Download",
+    "downloadFolder": "Download Folder",
+    "copyPresignedUrl": "Copy Presigned URL",
+    "copyPath": "Copy Path",
+    "cut": "Cut",
+    "properties": "Properties"
+  },
+  "deleteConfirm": {
+    "titleFile": "Delete File",
+    "titleDirectory": "Delete Directory",
+    "titleMany": "Delete {{count}} items",
+    "singleBody": "will be permanently deleted.",
+    "singleDirExtra": "All contents inside will also be removed.",
+    "manyBody": "{{count}} items will be permanently deleted.",
+    "manyDirsExtra": "Directories and all their contents will be removed."
+  },
+  "properties": {
+    "dialogLabel": "Properties for {{name}}",
+    "type": "Type",
+    "size": "Size",
+    "location": "Location",
+    "path": "Path",
+    "copyPath": "Copy path",
+    "modified": "Modified",
+    "class": "Class",
+    "kinds": {
+      "symlink": "Symlink",
+      "directory": "Directory",
+      "file": "File"
+    },
+    "permissions": "Permissions",
+    "readOnlySymlink": "read-only (symlink)",
+    "perm": {
+      "owner": "Owner",
+      "group": "Group",
+      "other": "Other",
+      "read": "Read",
+      "write": "Write",
+      "execute": "Execute"
+    },
+    "octal": "Octal",
+    "octalLabel": "Octal permissions",
+    "specialBitsPreserved": "Special bits set ({{bits}}); not editable here and preserved on apply.",
+    "specialBitsDropped": "Special bits set ({{bits}}); not editable here and dropped on a recursive apply.",
+    "recursive": "Apply permissions recursively to all contents",
+    "partialApplied": "Applied to {{applied}} item(s), {{errors}} error(s). {{first}}",
+    "partialErrors": "Applied, {{errors}} error(s). {{first}}",
+    "chmodFailed": "Failed to change permissions"
+  },
+  "view": {
+    "uploadFailed": "Upload failed: {{error}}",
+    "listFailed": "Failed to list directory",
+    "enableSudoFailed": "Failed to enable sudo mode",
+    "disableSudoFailed": "Failed to disable sudo mode",
+    "downloadDirTitle": "Download \"{{name}}\" to…",
+    "saveAsTitle": "Save \"{{name}}\" as…",
+    "downloadManyTitle": "Download {{count}} items to…",
+    "preparingDownload": "Preparing download…",
+    "downloaded_one": "Downloaded {{count}} item",
+    "downloaded_other": "Downloaded {{count}} items",
+    "downloadFailed": "Download failed: {{error}}",
+    "uploadFileTitle": "Upload file",
+    "uploadFolderTitle": "Upload folder",
+    "pasteFailed": "Paste failed",
+    "moveFailed": "Move failed",
+    "copyFailed": "Copy failed",
+    "unexpectedError": "Unexpected error"
+  },
+  "dropOverwrite": {
+    "titleOne": "Overwrite item?",
+    "titleMany": "Overwrite {{count}} items?",
+    "confirmOne": "Overwrite",
+    "confirmMany": "Overwrite {{count}}",
+    "existsOne": "already exists here.",
+    "existsMany": "{{count}} items already exist here.",
+    "note": "Files are replaced; folders are merged, replacing only same-named files inside."
+  },
+  "sessionPicker": {
+    "title": "File Browser",
+    "subtitle": "Select an active SSH session to browse its filesystem.",
+    "activeSessions": "Active Sessions",
+    "status": {
+      "connecting": "Connecting",
+      "connected": "Connected",
+      "disconnecting": "Disconnecting",
+      "disconnected": "Disconnected",
+      "error": "Error"
+    },
+    "openSftpTitle": "Open SFTP for {{label}}",
+    "openBrowserLabel": "Open file browser for {{label}}",
+    "opening": "Opening…",
+    "openSftp": "Open SFTP",
+    "openFailed": "Failed to open SFTP session",
+    "emptyTitle": "No active SSH sessions",
+    "emptyHint": "Connect to a host from the <hosts>Hosts</hosts> page first, then return here to browse files."
+  },
+  "tabs": {
+    "close": "Close {{label}}"
+  },
+  "page": {
+    "fallbackLabel": "Explorer"
+  }
+}

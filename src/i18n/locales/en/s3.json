@@ -1,0 +1,70 @@
+{
+  "page": {
+    "title": "Cloud Storage",
+    "subtitle": "Browse and manage files in S3 buckets and S3-compatible storage services like MinIO, R2, and Wasabi",
+    "searchPlaceholder": "Search connections...",
+    "searchLabel": "Search S3 connections",
+    "newConnection": "New Connection",
+    "saved": "Saved",
+    "active": "Active",
+    "noMatch": "No connections match “{{query}}”",
+    "emptyTitle": "No S3 connections",
+    "emptyHint": "Connect to Amazon S3, MinIO, Cloudflare R2, or any S3-compatible storage",
+    "copyLabel": "{{label}} (copy)",
+    "deleteTitle": "Delete this S3 connection?",
+    "deleteMessage": "This connection will be permanently removed.",
+    "deleteConfirm": "Confirm"
+  },
+  "environments": {
+    "none": "None",
+    "production": "Production",
+    "staging": "Staging",
+    "dev": "Dev",
+    "testing": "Testing"
+  },
+  "dialog": {
+    "titleEdit": "Edit Connection",
+    "titleNew": "Connect to S3",
+    "saving": "Saving…",
+    "saveChanges": "Save Changes",
+    "connecting": "Connecting…",
+    "saveFailed": "Save failed",
+    "connectFailed": "Connection failed",
+    "sections": {
+      "provider": "Provider",
+      "credentials": "Credentials",
+      "connection": "Connection",
+      "appearance": "Appearance",
+      "notes": "Notes"
+    },
+    "fields": {
+      "service": "Service",
+      "label": "Label",
+      "optional": "(optional)",
+      "labelPlaceholder": "My S3 Bucket",
+      "keepCredentials": "Leave blank to keep existing credentials",
+      "accessKey": "Access Key ID",
+      "secretKey": "Secret Access Key",
+      "region": "Region",
+      "bucket": "Bucket",
+      "endpoint": "Endpoint URL",
+      "group": "Group",
+      "noGroup": "No group",
+      "environment": "Environment",
+      "color": "Color",
+      "colorOption": "Color {{color}}",
+      "notes": "Notes",
+      "notesPlaceholder": "Notes about this connection..."
+    }
+  },
+  "browser": {
+    "listBucketsFailed": "Failed to list buckets",
+    "listObjectsFailed": "Failed to list objects",
+    "switchBucketFailed": "Failed to switch bucket",
+    "downloadTitle": "Download \"{{name}}\"",
+    "uploadFileTitle": "Upload file",
+    "uploadFolderTitle": "Upload folder",
+    "buckets": "Buckets",
+    "noBuckets": "No buckets found"
+  }
+}

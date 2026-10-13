@@ -1,0 +1,274 @@
+{
+  "copyLabel": "{{label}} (사본)",
+  "colorSwatch": "색상 {{color}}",
+  "environment": {
+    "badge": {
+      "production": "운영",
+      "staging": "스테이징",
+      "dev": "개발",
+      "testing": "테스트"
+    },
+    "option": {
+      "none": "없음",
+      "production": "운영",
+      "staging": "스테이징",
+      "dev": "개발",
+      "testing": "테스트"
+    }
+  },
+  "hostsPage": {
+    "title": "호스트",
+    "subtitle": "저장한 서버를 관리하고 그룹으로 정리해서 클릭 한 번으로 연결할 수 있어요",
+    "searchPlaceholder": "호스트 검색...",
+    "searchLabel": "호스트 검색",
+    "newServer": "새 서버",
+    "newServerTitle": "새 서버 (Cmd+T)",
+    "newS3": "새 S3",
+    "newS3Title": "새 S3 연결",
+    "newGroup": "새 그룹",
+    "import": "가져오기",
+    "importTitle": "SSH 설정 파일에서 가져오기",
+    "groupsHeading": "그룹",
+    "hostsHeading": "호스트",
+    "cloudStorageHeading": "클라우드 스토리지",
+    "backToAllHosts": "전체 호스트로 돌아가기",
+    "allHosts": "전체 호스트",
+    "empty": {
+      "noMatch": "“{{query}}” 검색 결과가 없어요",
+      "groupEmpty": "이 그룹에는 아직 호스트가 없어요",
+      "noHosts": "아직 저장된 호스트가 없어요. 서버에 연결하면 여기에 저장돼요."
+    },
+    "toasts": {
+      "hostOrderFailed": "호스트 순서를 저장하지 못해 되돌렸어요",
+      "groupOrderFailed": "그룹 순서를 저장하지 못해 되돌렸어요",
+      "s3OrderFailed": "연결 순서를 저장하지 못해 되돌렸어요"
+    },
+    "errors": {
+      "s3ConnectFailed": "S3에 연결하지 못했어요",
+      "connectFailedCheck": "연결하지 못했어요. 호스트, 포트, 자격 증명을 확인해 주세요.",
+      "connectFailed": "연결하지 못했어요"
+    }
+  },
+  "recent": {
+    "heading": "최근 연결",
+    "listLabel": "최근 연결",
+    "reconnectTitle": "{{name}}에 다시 연결 ({{target}})"
+  },
+  "connectionDialog": {
+    "failedTitle": "연결 실패",
+    "connecting": "연결 중..."
+  },
+  "card": {
+    "connectTitle": "{{name}}에 연결",
+    "openExplorerAria": "{{name}} 파일 탐색기 열기"
+  },
+  "hostCard": {
+    "ping": "핑",
+    "terminal": "터미널",
+    "explorer": "파일 탐색기",
+    "pingAria": "{{name}} 핑",
+    "openTerminalAria": "{{name}} 터미널 열기",
+    "tunnelTitle": "{{name}} 경유 터널",
+    "via": "{{name}} 경유",
+    "deleteTitle": "이 호스트를 삭제할까요?",
+    "deleteMessage": "이 호스트가 영구히 삭제돼요",
+    "health": {
+      "checking": "핑 확인 중...",
+      "reachable": "SSH 연결 가능{{latency}}",
+      "dnsFailed": "DNS 조회 실패",
+      "portClosed": "포트 연결 불가",
+      "sshFailed": "SSH 실패",
+      "failed": "핑 실패"
+    }
+  },
+  "s3Card": {
+    "explore": "파일 탐색기",
+    "deleteTitle": "이 S3 연결을 삭제할까요?",
+    "deleteMessage": "이 연결이 영구히 삭제돼요"
+  },
+  "groupCard": {
+    "deleteGroup": "그룹 삭제",
+    "hostCount_other": "호스트 {{count}}개"
+  },
+  "groupDelete": {
+    "title": "\"{{name}}\" 그룹을 삭제할까요?",
+    "confirmGroup": "그룹 삭제",
+    "confirmGroupAndHosts": "그룹 및 호스트 삭제",
+    "emptyMessage": "빈 그룹이 영구히 삭제돼요",
+    "containsHosts_other": "이 그룹에 호스트가 {{count}}개 있어요",
+    "alsoDeleteHosts_other": "이 그룹의 호스트 {{count}}개도 모두 삭제",
+    "uncheckedHint": "선택하지 않으면 호스트는 그룹에서 빠지기만 해요"
+  },
+  "groupModal": {
+    "titleNew": "새 그룹",
+    "titleEdit": "그룹 편집",
+    "saving": "저장 중…",
+    "create": "그룹 만들기",
+    "nameLabel": "이름",
+    "namePlaceholder": "예: 운영, 스테이징, 홈 랩",
+    "iconLabel": "아이콘",
+    "colorLabel": "색상",
+    "nameRequired": "그룹 이름을 입력해 주세요",
+    "saveFailed": "그룹을 저장하지 못했어요",
+    "icons": {
+      "folder": "폴더",
+      "cloud": "클라우드",
+      "server": "서버",
+      "database": "데이터베이스",
+      "globe": "지구본",
+      "shield": "방패",
+      "code": "코드",
+      "wifi": "와이파이",
+      "home": "집",
+      "building": "건물",
+      "rocket": "로켓",
+      "wrench": "렌치",
+      "monitor": "모니터",
+      "lock": "자물쇠",
+      "zap": "번개",
+      "cpu": "CPU",
+      "hardDrive": "하드 드라이브",
+      "network": "네트워크",
+      "radio": "라디오",
+      "warehouse": "창고"
+    }
+  },
+  "importSsh": {
+    "title": "SSH 설정 가져오기",
+    "importing": "가져오는 중…",
+    "importButton_other": "호스트 {{count}}개 가져오기",
+    "imported_other": "호스트 {{count}}개를 가져왔어요",
+    "skipped": "{{n}}개 건너뜀",
+    "scanning": "SSH 설정 파일을 읽는 중...",
+    "browseConfig": "설정 파일 찾아보기",
+    "noHosts": "SSH 설정 파일에서 호스트를 찾지 못했어요",
+    "tryDifferentFile": "다른 파일 선택",
+    "change": "변경",
+    "selectedCount": "{{total}}개 중 {{selected}}개 선택됨",
+    "selectAll": "모두 선택",
+    "selectNone": "선택 해제",
+    "pattern": "패턴",
+    "exists": "이미 있음",
+    "keyFile": "키:{{file}}",
+    "selectFileTitle": "SSH 설정 파일 선택",
+    "parseFailed": "SSH 설정 파일을 읽지 못했어요",
+    "importFailed": "가져오지 못했어요"
+  },
+  "hostEdit": {
+    "titleNew": "새 호스트",
+    "titleEdit": "호스트 편집",
+    "saving": "저장 중…",
+    "connecting": "연결 중…",
+    "optional": "(선택 사항)",
+    "sections": {
+      "connection": "연결",
+      "tunnel": "터널",
+      "advanced": "고급",
+      "appearance": "모양",
+      "notes": "메모"
+    },
+    "fields": {
+      "label": {
+        "label": "표시 이름",
+        "placeholder": "예: 운영 서버"
+      },
+      "host": {
+        "label": "호스트",
+        "placeholder": "192.168.1.1 또는 호스트 이름"
+      },
+      "port": {
+        "label": "포트"
+      },
+      "username": {
+        "label": "사용자 이름"
+      },
+      "authType": {
+        "label": "인증 방식",
+        "password": "비밀번호",
+        "privateKey": "개인 키"
+      },
+      "group": {
+        "label": "그룹",
+        "none": "그룹 없음"
+      },
+      "password": {
+        "label": "비밀번호",
+        "placeholder": "연결에 사용할 비밀번호 입력"
+      },
+      "sshKey": {
+        "label": "SSH 키",
+        "placeholder": "키 선택...",
+        "dialogTitle": "SSH 개인 키 선택 (숨김 파일 보기: Cmd+Shift+.)"
+      },
+      "passphrase": {
+        "label": "암호 문구",
+        "placeholder": "없으면 비워 두세요"
+      },
+      "keepAlive": {
+        "label": "연결 유지 간격",
+        "unit": "(초)"
+      },
+      "defaultShell": {
+        "label": "기본 셸"
+      },
+      "startupCommand": {
+        "label": "시작 명령어"
+      },
+      "startDirectory": {
+        "label": "시작 폴더",
+        "placeholder": "~/projects 또는 /var/www",
+        "hint": "파일 탐색기가 처음 열릴 폴더예요. 기본값은 홈 폴더예요."
+      },
+      "color": {
+        "label": "색상",
+        "autoTitle": "자동 (해시 기반)",
+        "autoAria": "자동 색상",
+        "auto": "자동"
+      },
+      "environment": {
+        "label": "환경"
+      },
+      "osType": {
+        "label": "OS 종류",
+        "auto": "자동"
+      },
+      "notes": {
+        "label": "메모",
+        "placeholder": "이 서버에 대한 메모..."
+      }
+    },
+    "tunnel": {
+      "toggle": "SSH 터널을 통해 연결",
+      "createAnotherHint": "터널로 사용하려면 먼저 다른 호스트를 저장해 주세요",
+      "hostLabel": "터널 호스트",
+      "hostPlaceholder": "호스트 선택…",
+      "staleSelection": "이전에 선택한 터널 호스트를 더 이상 사용할 수 없어요. 다른 호스트를 고르거나 터널을 꺼 주세요.",
+      "noCandidates": "터널로 사용할 다른 저장된 호스트가 없어요. 먼저 다른 호스트를 만들어 주세요."
+    },
+    "credential": {
+      "saved": "시스템 키체인에 자격 증명이 저장되어 있어요",
+      "clearAria": "저장된 자격 증명 지우기",
+      "clear": "지우기"
+    },
+    "deleteConfirm": {
+      "question": "이 호스트를 삭제할까요?",
+      "deleting": "삭제 중…"
+    },
+    "loadingAria": "호스트 정보 불러오는 중",
+    "validation": {
+      "hostRequired": "호스트를 입력해 주세요",
+      "usernameRequired": "사용자 이름을 입력해 주세요",
+      "portRange": "포트는 1에서 65535 사이여야 해요",
+      "keepAlivePositive": "연결 유지 간격은 0 이상의 숫자여야 해요",
+      "noTunnelCandidates": "터널로 사용할 다른 저장된 호스트가 없어요",
+      "selectTunnelHost": "터널 호스트를 선택하거나 SSH 터널을 꺼 주세요"
+    },
+    "errors": {
+      "loadFailed": "호스트 정보를 불러오지 못했어요",
+      "saveFailed": "호스트를 저장하지 못했어요",
+      "connectFailed": "연결하지 못했어요",
+      "deleteFailed": "호스트를 삭제하지 못했어요",
+      "invalidKey": "올바른 키 파일이 아니에요"
+    }
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "actions": {
+    "add": "Add",
+    "apply": "Apply",
+    "browse": "Browse",
+    "cancel": "Cancel",
+    "close": "Close",
+    "connect": "Connect",
+    "copy": "Copy",
+    "create": "Create",
+    "delete": "Delete",
+    "disconnect": "Disconnect",
+    "done": "Done",
+    "duplicate": "Duplicate",
+    "edit": "Edit",
+    "open": "Open",
+    "reconnect": "Reconnect",
+    "refresh": "Refresh",
+    "remove": "Remove",
+    "rename": "Rename",
+    "retry": "Retry",
+    "save": "Save"
+  }
+}

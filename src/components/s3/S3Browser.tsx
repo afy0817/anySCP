@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Folder, RefreshCw, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useS3Store } from "../../stores/s3-store";
 import type { S3BucketInfo, S3ListResult } from "../../types";
 import type { ExplorerEntry } from "../../types/explorer";
@@ -18,6 +19,7 @@ interface S3BrowserProps {
 }
 
 export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
+  const { t } = useTranslation(["s3", "common"]);
   const session = useS3Store((s) => s.sessions.get(sessionId));
   const setEntries = useS3Store((s) => s.setEntries);
   const setBuckets = useS3Store((s) => s.setBuckets);
@@ -123,10 +125,10 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
       setBuckets(sessionId, buckets);
     } catch (err) {
       const msg = err && typeof err === "object" && "message" in err
-        ? String((err as { message: string }).message) : "Failed to list buckets";
+        ? String((err as { message: string }).message) : t("browser.listBucketsFailed");
       setError(sessionId, msg);
     }
-  }, [sessionId, setLoading, setBuckets, setError]);
+  }, [sessionId, setLoading, setBuckets, setError, t]);
 
   const loadObjects = useCallback(async (prefix: string) => {
     setLoading(sessionId, true);
@@ -140,10 +142,10 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
       setEntries(sessionId, prefix, result.entries);
     } catch (err) {
       const msg = err && typeof err === "object" && "message" in err
-        ? String((err as { message: string }).message) : "Failed to list objects";
+        ? String((err as { message: string }).message) : t("browser.listObjectsFailed");
       setError(sessionId, msg);
     }
-  }, [sessionId, setLoading, setEntries, setError]);
+  }, [sessionId, setLoading, setEntries, setError, t]);
 
   const selectBucket = useCallback(async (bucketName: string) => {
     try {
@@ -153,10 +155,10 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
       await loadObjects("");
     } catch (err) {
       const msg = err && typeof err === "object" && "message" in err
-        ? String((err as { message: string }).message) : "Failed to switch bucket";
+        ? String((err as { message: string }).message) : t("browser.switchBucketFailed");
       setError(sessionId, msg);
     }
-  }, [sessionId, setCurrentBucket, loadObjects, setError]);
+  }, [sessionId, setCurrentBucket, loadObjects, setError, t]);
 
   useEffect(() => {
     // If a bucket was already selected (e.g. set by the card-click flow that
@@ -266,7 +268,7 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
     if (entry.entryType === "Directory") return;
     try {
       const { save } = await import("@tauri-apps/plugin-dialog");
-      const savePath = await save({ defaultPath: entry.name, title: `Download "${entry.name}"` });
+      const savePath = await save({ defaultPath: entry.name, title: t("browser.downloadTitle", { name: entry.name }) });
       if (!savePath) return;
 
       // Download to the user-chosen (possibly renamed) path THROUGH the transfer
@@ -281,7 +283,7 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
     } catch (err) {
       setError(sessionId, err instanceof Error ? err.message : String(err));
     }
-  }, [sessionId, setError]);
+  }, [sessionId, setError, t]);
 
   // ─── Upload (dialog, enqueue) ─────────────────────────────────────────────
 
@@ -289,7 +291,7 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
     if (!session) return;
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
-      const path = await open({ multiple: false, title: "Upload file" });
+      const path = await open({ multiple: false, title: t("browser.uploadFileTitle") });
       if (!path || typeof path !== "string") return;
 
       const { invoke } = await import("@tauri-apps/api/core");
@@ -299,7 +301,7 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
         prefix: session.currentPrefix,
       });
     } catch { /* best-effort */ }
-  }, [sessionId, session]);
+  }, [sessionId, session, t]);
 
   // Upload one or more whole folders. The picker is folder-only, so the queue
   // recreates each folder under the current prefix and walks it recursively.
@@ -307,7 +309,7 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
     if (!session) return;
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
-      const selection = await open({ directory: true, multiple: true, title: "Upload folder" });
+      const selection = await open({ directory: true, multiple: true, title: t("browser.uploadFolderTitle") });
       if (!selection) return;
       const localPaths = Array.isArray(selection) ? selection : [selection];
       if (localPaths.length === 0) return;
@@ -319,7 +321,7 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
         prefix: session.currentPrefix,
       });
     } catch { /* best-effort */ }
-  }, [sessionId, session]);
+  }, [sessionId, session, t]);
 
   // ─── Edit in external editor ───────────────────────────────────────────────
 
@@ -388,11 +390,11 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
     return (
       <div className="flex flex-col h-full overflow-hidden">
         <div className="flex items-center h-10 px-3 border-b border-border bg-bg-surface shrink-0 gap-2 no-select">
-          <span className="text-[length:var(--text-sm)] font-medium text-text-primary">Buckets</span>
+          <span className="text-[length:var(--text-sm)] font-medium text-text-primary">{t("browser.buckets")}</span>
           <span className="flex-1" />
           <button
             onClick={() => void loadBuckets()}
-            title="Refresh"
+            title={t("common:actions.refresh")}
             className="flex items-center justify-center w-7 h-7 rounded-md text-text-muted hover:text-text-secondary hover:bg-bg-subtle transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <RefreshCw size={15} strokeWidth={1.8} className={session.loading ? "motion-safe:animate-spin" : ""} />
@@ -417,7 +419,7 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
           ))}
           {!session.loading && session.buckets.length === 0 && !session.error && (
             <p className="text-[length:var(--text-sm)] text-text-muted px-4 py-8 text-center">
-              No buckets found
+              {t("browser.noBuckets")}
             </p>
           )}
         </div>

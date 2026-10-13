@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { X, Copy, Folder, FileText, Link as LinkIcon, Loader2, AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { ExplorerEntry, ProviderCapabilities, ChmodResult } from "../../types/explorer";
 import { ModalBackdrop } from "../shared/ModalBackdrop";
 import { formatBytes } from "../../utils/format";
@@ -38,8 +39,17 @@ function locationOf(id: string): string {
 }
 
 // Rows: Owner / Group / Other; columns: Read / Write / Execute.
-const ROW_LABELS = ["Owner", "Group", "Other"] as const;
-const COL_LABELS = ["Read", "Write", "Execute"] as const;
+// Translation keys; rendered with t() so a language switch relabels them live.
+const ROW_LABELS = [
+  "properties.perm.owner",
+  "properties.perm.group",
+  "properties.perm.other",
+] as const;
+const COL_LABELS = [
+  "properties.perm.read",
+  "properties.perm.write",
+  "properties.perm.execute",
+] as const;
 const ROW_KEYS: ReadonlyArray<ReadonlyArray<keyof PermissionBits>> = [
   ["ownerR", "ownerW", "ownerX"],
   ["groupR", "groupW", "groupX"],
@@ -54,6 +64,7 @@ export function FilePropertiesDialog({
   onApplyPermissions,
   onClose,
 }: FilePropertiesDialogProps) {
+  const { t } = useTranslation(["explorer", "common"]);
   const isDir = entry.entryType === "Directory";
 
   // Special permission bits (setuid/setgid/sticky) live in the raw mode but the
@@ -153,9 +164,11 @@ export function FilePropertiesDialog({
       // summary and keep the dialog open when some entries failed; otherwise
       // close as for a normal apply.
       if (result && result.errors.length > 0) {
-        const appliedPart = result.applied > 0 ? ` to ${result.applied} item(s)` : "";
+        const summary = { applied: result.applied, errors: result.errors.length, first: result.errors[0] };
         setError(
-          `Applied${appliedPart}, ${result.errors.length} error(s). ${result.errors[0]}`,
+          result.applied > 0
+            ? t("properties.partialApplied", summary)
+            : t("properties.partialErrors", summary),
         );
       } else {
         onClose();
@@ -166,12 +179,12 @@ export function FilePropertiesDialog({
           ? String((err as { message: string }).message)
           : err instanceof Error
             ? err.message
-            : "Failed to change permissions";
+            : t("properties.chmodFailed");
       setError(msg);
     } finally {
       setApplying(false);
     }
-  }, [onApplyPermissions, canApply, applying, recursive, isDir, entry, octal, specialBits, onClose]);
+  }, [onApplyPermissions, canApply, applying, recursive, isDir, entry, octal, specialBits, onClose, t]);
 
   // ─── Escape to close ──────────────────────────────────────────────────────
 
@@ -200,7 +213,7 @@ export function FilePropertiesDialog({
     >
       <div
         role="dialog"
-        aria-label={`Properties for ${entry.name}`}
+        aria-label={t("properties.dialogLabel", { name: entry.name })}
         data-testid="file-properties-dialog"
         className="w-full max-w-[380px] mx-4 rounded-xl bg-bg-overlay border border-border shadow-[var(--shadow-lg)] animate-[fadeIn_120ms_var(--ease-expo-out)_both]"
       >
@@ -222,7 +235,7 @@ export function FilePropertiesDialog({
           <button
             onClick={onClose}
             disabled={applying}
-            aria-label="Close"
+            aria-label={t("common:actions.close")}
             className="flex items-center justify-center w-6 h-6 rounded-md shrink-0 text-text-muted hover:text-text-primary hover:bg-bg-subtle transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           >
             <X size={14} strokeWidth={2} aria-hidden="true" />
@@ -232,35 +245,39 @@ export function FilePropertiesDialog({
         {/* File info */}
         <div className="flex flex-col gap-0 px-4 py-3">
           <div className="flex items-baseline gap-3 py-1">
-            <span className={labelClass}>Type</span>
+            <span className={labelClass}>{t("properties.type")}</span>
             <span className={valueClass}>
-              {entry.isSymlink ? "Symlink" : isDir ? "Directory" : "File"}
+              {entry.isSymlink
+                ? t("properties.kinds.symlink")
+                : isDir
+                  ? t("properties.kinds.directory")
+                  : t("properties.kinds.file")}
             </span>
           </div>
 
           {!isDir && (
             <div className="flex items-baseline gap-3 py-1">
-              <span className={labelClass}>Size</span>
+              <span className={labelClass}>{t("properties.size")}</span>
               <span className={valueClass}>{formatBytes(entry.size)}</span>
             </div>
           )}
 
           <div className="flex items-baseline gap-3 py-1">
-            <span className={labelClass}>Location</span>
+            <span className={labelClass}>{t("properties.location")}</span>
             <span className={`${valueClass} font-mono text-[length:var(--text-2xs)]`} title={location}>
               {location}
             </span>
           </div>
 
           <div className="flex items-baseline gap-3 py-1">
-            <span className={labelClass}>Path</span>
+            <span className={labelClass}>{t("properties.path")}</span>
             <span className={`${valueClass} font-mono text-[length:var(--text-2xs)]`} title={entry.id}>
               {entry.id}
             </span>
             <button
               onClick={copyPath}
-              title="Copy path"
-              aria-label="Copy path"
+              title={t("properties.copyPath")}
+              aria-label={t("properties.copyPath")}
               className="shrink-0 p-1 rounded text-text-muted hover:text-text-primary hover:bg-bg-subtle transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <Copy size={12} strokeWidth={2} aria-hidden="true" />
@@ -268,13 +285,13 @@ export function FilePropertiesDialog({
           </div>
 
           <div className="flex items-baseline gap-3 py-1">
-            <span className={labelClass}>Modified</span>
+            <span className={labelClass}>{t("properties.modified")}</span>
             <span className={valueClass}>{modified}</span>
           </div>
 
           {capabilities.hasStorageClass && entry.storageClass && (
             <div className="flex items-baseline gap-3 py-1">
-              <span className={labelClass}>Class</span>
+              <span className={labelClass}>{t("properties.class")}</span>
               <span className={valueClass}>{entry.storageClass}</span>
             </div>
           )}
@@ -285,10 +302,10 @@ export function FilePropertiesDialog({
           <div className="px-4 py-3 border-t border-border">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-text-muted">
-                Permissions
+                {t("properties.permissions")}
               </span>
               {entry.isSymlink && (
-                <span className="text-[length:var(--text-2xs)] text-text-muted">read-only (symlink)</span>
+                <span className="text-[length:var(--text-2xs)] text-text-muted">{t("properties.readOnlySymlink")}</span>
               )}
             </div>
 
@@ -296,15 +313,15 @@ export function FilePropertiesDialog({
               <thead>
                 <tr className="text-text-muted">
                   <th className="text-left font-medium w-16" />
-                  <th className="font-medium py-1">Read</th>
-                  <th className="font-medium py-1">Write</th>
-                  <th className="font-medium py-1">Execute</th>
+                  {COL_LABELS.map((colLabel) => (
+                    <th key={colLabel} className="font-medium py-1">{t(colLabel)}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {ROW_LABELS.map((rowLabel, r) => (
                   <tr key={rowLabel}>
-                    <td className="py-1 text-text-secondary">{rowLabel}</td>
+                    <td className="py-1 text-text-secondary">{t(rowLabel)}</td>
                     {ROW_KEYS[r].map((key, c) => (
                       <td key={key} className="text-center py-1">
                         <input
@@ -314,7 +331,7 @@ export function FilePropertiesDialog({
                           disabled={!canEditPermissions}
                           onChange={() => toggleBit(key)}
                           className="h-3.5 w-3.5 cursor-pointer accent-accent disabled:cursor-not-allowed disabled:opacity-50"
-                          aria-label={`${rowLabel} ${COL_LABELS[c]}`}
+                          aria-label={`${t(rowLabel)} ${t(COL_LABELS[c])}`}
                         />
                       </td>
                     ))}
@@ -324,7 +341,7 @@ export function FilePropertiesDialog({
             </table>
 
             <div className="flex items-center gap-2 mt-3">
-              <span className="text-[length:var(--text-xs)] text-text-muted">Octal</span>
+              <span className="text-[length:var(--text-xs)] text-text-muted">{t("properties.octal")}</span>
               <input
                 type="text"
                 inputMode="numeric"
@@ -334,7 +351,7 @@ export function FilePropertiesDialog({
                 onChange={(e) => handleOctalInput(e.target.value)}
                 onBlur={handleOctalBlur}
                 className="w-16 px-2 py-1 rounded-md font-mono text-center text-[length:var(--text-sm)] text-text-primary bg-bg-base border border-border outline-none focus:border-border-focus focus:ring-2 focus:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
-                aria-label="Octal permissions"
+                aria-label={t("properties.octalLabel")}
               />
               <span className="font-mono text-[length:var(--text-2xs)] text-text-muted">
                 {/* rwx preview, live */}
@@ -348,10 +365,9 @@ export function FilePropertiesDialog({
                 data-testid="perm-special-bits"
                 className="mt-2 text-[length:var(--text-2xs)] text-text-muted"
               >
-                Special bits set ({specialBitsLabel}); not editable here and{" "}
                 {recursive && isDir
-                  ? "dropped on a recursive apply."
-                  : "preserved on apply."}
+                  ? t("properties.specialBitsDropped", { bits: specialBitsLabel })
+                  : t("properties.specialBitsPreserved", { bits: specialBitsLabel })}
               </p>
             )}
 
@@ -366,7 +382,7 @@ export function FilePropertiesDialog({
                   onChange={(e) => setRecursive(e.target.checked)}
                   className="h-3.5 w-3.5 cursor-pointer accent-accent disabled:cursor-not-allowed disabled:opacity-50"
                 />
-                Apply permissions recursively to all contents
+                {t("properties.recursive")}
               </label>
             )}
           </div>
@@ -393,7 +409,7 @@ export function FilePropertiesDialog({
             disabled={applying}
             className="px-4 py-2 text-[length:var(--text-sm)] text-text-secondary hover:text-text-primary rounded-lg transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           >
-            {canEditPermissions ? "Cancel" : "Close"}
+            {canEditPermissions ? t("common:actions.cancel") : t("common:actions.close")}
           </button>
           {canEditPermissions && (
             <button
@@ -403,7 +419,7 @@ export function FilePropertiesDialog({
               className="flex items-center gap-1.5 px-4 py-2 text-[length:var(--text-sm)] font-medium text-white bg-accent hover:opacity-90 rounded-lg transition-opacity duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {applying && <Loader2 size={14} strokeWidth={2} className="animate-spin" aria-hidden="true" />}
-              Apply
+              {t("common:actions.apply")}
             </button>
           )}
         </div>

@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { Monitor } from "lucide-react";
 import { ModalShell, BTN_GHOST, BTN_SECONDARY, BTN_PRIMARY } from "../shared/ModalShell";
 import { useUiStore } from "../../stores/ui-store";
@@ -117,6 +118,7 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function HostEditModal() {
+  const { t } = useTranslation(["dashboard", "common"]);
   const editingHostId = useUiStore((s) => s.editingHostId);
   const setEditingHostId = useUiStore((s) => s.setEditingHostId);
 
@@ -217,12 +219,15 @@ export function HostEditModal() {
         setHasSavedCred(hasCred);
         setTunnelEnabled(!!host.proxy_jump_host_id);
       } catch (err) {
-        setError(extractError(err, "Failed to load host data"));
+        setError(extractError(err, t("hostEdit.errors.loadFailed")));
       } finally {
         setLoadingHost(false);
         requestAnimationFrame(() => firstInputRef.current?.focus());
       }
     })();
+    // `t` is deliberately not a dependency: a language switch must not reset
+    // the form and reload the host while the modal is open.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editingHostId, isNewHost, loadGroups, loadHosts]);
 
   // Focus the first field (Label) when the modal opens.
@@ -246,25 +251,25 @@ export function HostEditModal() {
 
   // ── Validation ──────────────────────────────────────────────────────────────
   const validate = (): string | null => {
-    if (!form.host.trim()) return "Host is required";
-    if (!form.username.trim()) return "Username is required";
+    if (!form.host.trim()) return t("hostEdit.validation.hostRequired");
+    if (!form.username.trim()) return t("hostEdit.validation.usernameRequired");
     const portNum = parseInt(form.port, 10);
     if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
-      return "Port must be between 1 and 65535";
+      return t("hostEdit.validation.portRange");
     }
     if (form.keepAliveInterval !== "") {
       const kai = parseInt(form.keepAliveInterval, 10);
-      if (isNaN(kai) || kai < 0) return "Keep Alive must be a positive number";
+      if (isNaN(kai) || kai < 0) return t("hostEdit.validation.keepAlivePositive");
     }
     if (tunnelEnabled) {
       const candidates = hosts.filter((h) => h.id !== originalHost?.id);
       if (candidates.length === 0) {
-        return "No other saved hosts are available to tunnel through";
+        return t("hostEdit.validation.noTunnelCandidates");
       }
       // Rejects both an empty selection and a stale one whose host no longer
       // exists in the dropdown (e.g. it was deleted while the modal was open).
       if (!candidates.some((h) => h.id === form.proxyJumpHostId)) {
-        return "Select a tunnel host or disable the SSH tunnel";
+        return t("hostEdit.validation.selectTunnelHost");
       }
     }
     return null;
@@ -367,7 +372,7 @@ export function HostEditModal() {
 
       close();
     } catch (err) {
-      setError(extractError(err, "Failed to save host"));
+      setError(extractError(err, t("hostEdit.errors.saveFailed")));
     } finally {
       setSaving(false);
     }
@@ -414,7 +419,7 @@ export function HostEditModal() {
       void useHostsStore.getState().recordConnection(host.id);
       close();
     } catch (err) {
-      setError(extractError(err, "Connection failed"));
+      setError(extractError(err, t("hostEdit.errors.connectFailed")));
     } finally {
       setConnecting(false);
     }
@@ -429,7 +434,7 @@ export function HostEditModal() {
       await deleteHost(editingHostId);
       close();
     } catch (err) {
-      setError(extractError(err, "Failed to delete host"));
+      setError(extractError(err, t("hostEdit.errors.deleteFailed")));
       setSaving(false);
       setDeleteConfirm(false);
     }
@@ -452,7 +457,7 @@ export function HostEditModal() {
     <ModalShell
       open={isOpen}
       onClose={handleClose}
-      title={isNewHost ? "New Host" : "Edit Host"}
+      title={isNewHost ? t("hostEdit.titleNew") : t("hostEdit.titleEdit")}
       icon={Monitor}
       maxWidth="lg"
       scrollable
@@ -475,7 +480,7 @@ export function HostEditModal() {
               disabled={isBusy || loadingHost}
               className="px-3 py-1.5 text-[length:var(--text-sm)] font-medium text-status-error hover:bg-status-error/10 rounded-lg transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
             >
-              Delete
+              {t("common:actions.delete")}
             </button>
           )
         ) : undefined
@@ -484,13 +489,13 @@ export function HostEditModal() {
         !deleteConfirm ? (
           <>
             <button type="button" data-testid="host-modal-cancel" onClick={close} disabled={isBusy} className={BTN_GHOST}>
-              Cancel
+              {t("common:actions.cancel")}
             </button>
             <button type="button" data-testid="host-modal-save" onClick={handleSave} disabled={isBusy || loadingHost} className={BTN_SECONDARY}>
-              {saving ? "Saving…" : "Save"}
+              {saving ? t("hostEdit.saving") : t("common:actions.save")}
             </button>
             <button type="button" data-testid="host-modal-connect" onClick={handleConnect} disabled={isBusy || loadingHost} className={BTN_PRIMARY}>
-              {connecting ? "Connecting…" : "Connect"}
+              {connecting ? t("hostEdit.connecting") : t("common:actions.connect")}
             </button>
           </>
         ) : undefined
@@ -503,13 +508,13 @@ export function HostEditModal() {
             <div className="flex flex-col gap-3.5">
 
               {/* ════════════════ CONNECTION ════════════════ */}
-              <SectionHeader>Connection</SectionHeader>
+              <SectionHeader>{t("hostEdit.sections.connection")}</SectionHeader>
 
               {/* Label */}
               <div>
                 <label htmlFor="hem-label" className={labelClass}>
-                  Label
-                  <span className="ml-1 text-text-muted font-normal">(optional)</span>
+                  {t("hostEdit.fields.label.label")}
+                  <span className="ml-1 text-text-muted font-normal">{t("hostEdit.optional")}</span>
                 </label>
                 <input
                   ref={firstInputRef}
@@ -518,7 +523,7 @@ export function HostEditModal() {
                   type="text"
                   value={form.label}
                   onChange={(e) => setField("label", e.target.value)}
-                  placeholder="e.g., Production Server"
+                  placeholder={t("hostEdit.fields.label.placeholder")}
                   disabled={isBusy}
                   className={inputClass}
                 />
@@ -528,7 +533,7 @@ export function HostEditModal() {
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label htmlFor="hem-host" className={labelClass}>
-                    Host <RequiredMark />
+                    {t("hostEdit.fields.host.label")} <RequiredMark />
                   </label>
                   <input
                     id="hem-host"
@@ -536,14 +541,14 @@ export function HostEditModal() {
                     type="text"
                     value={form.host}
                     onChange={(e) => setField("host", e.target.value)}
-                    placeholder="192.168.1.1 or hostname"
+                    placeholder={t("hostEdit.fields.host.placeholder")}
                     disabled={isBusy}
                     className={`${inputClass} font-mono`}
                   />
                 </div>
                 <div className="w-20">
                   <label htmlFor="hem-port" className={labelClass}>
-                    Port <RequiredMark />
+                    {t("hostEdit.fields.port.label")} <RequiredMark />
                   </label>
                   <input
                     id="hem-port"
@@ -562,7 +567,7 @@ export function HostEditModal() {
               {/* Username */}
               <div>
                 <label htmlFor="hem-username" className={labelClass}>
-                  Username <RequiredMark />
+                  {t("hostEdit.fields.username.label")} <RequiredMark />
                 </label>
                 <input
                   id="hem-username"
@@ -580,7 +585,7 @@ export function HostEditModal() {
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label htmlFor="hem-auth" className={labelClass}>
-                    Auth Type
+                    {t("hostEdit.fields.authType.label")}
                   </label>
                   <CustomSelect
                     id="hem-auth"
@@ -589,15 +594,15 @@ export function HostEditModal() {
                     onChange={(v) => setField("authType", v as AuthType)}
                     disabled={isBusy}
                     options={[
-                      { value: "password", label: "Password" },
-                      { value: "privateKey", label: "Private Key" },
+                      { value: "password", label: t("hostEdit.fields.authType.password") },
+                      { value: "privateKey", label: t("hostEdit.fields.authType.privateKey") },
                     ]}
                   />
                 </div>
 
                 <div className="flex-1">
                   <label htmlFor="hem-group" className={labelClass}>
-                    Group
+                    {t("hostEdit.fields.group.label")}
                   </label>
                   <GroupSelect
                     id="hem-group"
@@ -614,7 +619,7 @@ export function HostEditModal() {
               {form.authType === "password" ? (
                 <div>
                   <label htmlFor="hem-password" className={labelClass}>
-                    Password
+                    {t("hostEdit.fields.password.label")}
                   </label>
                   <input
                     id="hem-password"
@@ -625,7 +630,7 @@ export function HostEditModal() {
                     placeholder={
                       hasSavedCred && !credCleared && !form.password
                         ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
-                        : "Enter password to connect"
+                        : t("hostEdit.fields.password.placeholder")
                     }
                     disabled={isBusy}
                     className={inputClass}
@@ -640,7 +645,7 @@ export function HostEditModal() {
                 <>
                   <div>
                     <label htmlFor="hem-keypath" className={labelClass}>
-                      SSH Key
+                      {t("hostEdit.fields.sshKey.label")}
                     </label>
                     <div className="flex gap-2">
                       <div className="flex-1 min-w-0">
@@ -651,7 +656,7 @@ export function HostEditModal() {
                             value={form.keyPath}
                             onChange={(v) => setField("keyPath", v)}
                             disabled={isBusy}
-                            placeholder="Select a key..."
+                            placeholder={t("hostEdit.fields.sshKey.placeholder")}
                             options={sshKeys.map((key) => ({
                               value: key.path,
                               label: `${key.name} (${key.algorithm})`,
@@ -679,7 +684,7 @@ export function HostEditModal() {
                               const { open } = await import("@tauri-apps/plugin-dialog");
                               const { invoke } = await import("@tauri-apps/api/core");
                               const path = await open({
-                                title: "Select SSH Private Key (Cmd+Shift+. to show hidden files)",
+                                title: t("hostEdit.fields.sshKey.dialogTitle"),
                                 multiple: false,
                               });
                               if (path && typeof path === "string") {
@@ -693,7 +698,7 @@ export function HostEditModal() {
                                 } catch (err) {
                                   const msg = err && typeof err === "object" && "message" in err
                                     ? String((err as { message: string }).message)
-                                    : "Invalid key file";
+                                    : t("hostEdit.errors.invalidKey");
                                   setError(msg);
                                 }
                               }
@@ -711,7 +716,7 @@ export function HostEditModal() {
                           "disabled:opacity-50",
                         ].join(" ")}
                       >
-                        Browse
+                        {t("common:actions.browse")}
                       </button>
                     </div>
                     {form.keyPath && !sshKeys.some((k) => k.path === form.keyPath) && (
@@ -722,8 +727,8 @@ export function HostEditModal() {
                   </div>
                   <div>
                     <label htmlFor="hem-passphrase" className={labelClass}>
-                      Passphrase
-                      <span className="ml-1 text-text-muted font-normal">(optional)</span>
+                      {t("hostEdit.fields.passphrase.label")}
+                      <span className="ml-1 text-text-muted font-normal">{t("hostEdit.optional")}</span>
                     </label>
                     <input
                       id="hem-passphrase"
@@ -733,7 +738,7 @@ export function HostEditModal() {
                       placeholder={
                         hasSavedCred && !credCleared && !form.passphrase
                           ? "\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022"
-                          : "Leave empty if none"
+                          : t("hostEdit.fields.passphrase.placeholder")
                       }
                       disabled={isBusy}
                       className={inputClass}
@@ -748,7 +753,7 @@ export function HostEditModal() {
               )}
 
               {/* ════════════════ TUNNEL ════════════════ */}
-              <SectionHeader>Tunnel</SectionHeader>
+              <SectionHeader>{t("hostEdit.sections.tunnel")}</SectionHeader>
 
               <TunnelSection
                 enabled={tunnelEnabled}
@@ -769,8 +774,8 @@ export function HostEditModal() {
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label htmlFor="hem-keepalive" className={labelClass}>
-                    Keep Alive
-                    <span className="ml-1 text-text-muted font-normal">(seconds)</span>
+                    {t("hostEdit.fields.keepAlive.label")}
+                    <span className="ml-1 text-text-muted font-normal">{t("hostEdit.fields.keepAlive.unit")}</span>
                   </label>
                   <input
                     id="hem-keepalive"
@@ -785,7 +790,7 @@ export function HostEditModal() {
                 </div>
                 <div className="flex-1">
                   <label htmlFor="hem-shell" className={labelClass}>
-                    Default Shell
+                    {t("hostEdit.fields.defaultShell.label")}
                   </label>
                   <input
                     id="hem-shell"
@@ -802,8 +807,8 @@ export function HostEditModal() {
               {/* Startup Command */}
               <div>
                 <label htmlFor="hem-startup" className={labelClass}>
-                  Startup Command
-                  <span className="ml-1 text-text-muted font-normal">(optional)</span>
+                  {t("hostEdit.fields.startupCommand.label")}
+                  <span className="ml-1 text-text-muted font-normal">{t("hostEdit.optional")}</span>
                 </label>
                 <input
                   id="hem-startup"
@@ -822,8 +827,8 @@ export function HostEditModal() {
               {/* Start Directory */}
               <div>
                 <label htmlFor="hem-start-dir" className={labelClass}>
-                  Start Directory
-                  <span className="ml-1 text-text-muted font-normal">(optional)</span>
+                  {t("hostEdit.fields.startDirectory.label")}
+                  <span className="ml-1 text-text-muted font-normal">{t("hostEdit.optional")}</span>
                 </label>
                 <input
                   id="hem-start-dir"
@@ -831,29 +836,29 @@ export function HostEditModal() {
                   type="text"
                   value={form.startDirectory}
                   onChange={(e) => setField("startDirectory", e.target.value)}
-                  placeholder="~/projects or /var/www"
+                  placeholder={t("hostEdit.fields.startDirectory.placeholder")}
                   disabled={isBusy}
                   className={`${inputClass} font-mono`}
                 />
                 <p className="mt-1 text-[length:var(--text-xs)] text-text-muted">
-                  Directory the file browser opens in. Defaults to the home folder.
+                  {t("hostEdit.fields.startDirectory.hint")}
                 </p>
               </div>
 
               {/* ════════════════ APPEARANCE ════════════════ */}
-              <SectionHeader>Appearance</SectionHeader>
+              <SectionHeader>{t("hostEdit.sections.appearance")}</SectionHeader>
 
               {/* Color swatches */}
               <div>
-                <span className={labelClass}>Color</span>
+                <span className={labelClass}>{t("hostEdit.fields.color.label")}</span>
                 <div className="flex items-center gap-2 flex-wrap">
                   {/* Auto option — clears custom color */}
                   <button
                     type="button"
                     onClick={() => setField("color", "")}
                     disabled={isBusy}
-                    title="Auto (hash-based)"
-                    aria-label="Auto color"
+                    title={t("hostEdit.fields.color.autoTitle")}
+                    aria-label={t("hostEdit.fields.color.autoAria")}
                     className={[
                       "w-6 h-6 rounded-full border-2 text-[11px] font-bold",
                       "flex items-center justify-center",
@@ -865,7 +870,7 @@ export function HostEditModal() {
                     ].join(" ")}
                     style={{ background: "conic-gradient(#ef4444, #f97316, #eab308, #22c55e, #06b6d4, #8b5cf6, #ef4444)" }}
                   >
-                    <span className="sr-only">Auto</span>
+                    <span className="sr-only">{t("hostEdit.fields.color.auto")}</span>
                   </button>
 
                   {HOST_COLORS.map((c) => (
@@ -875,7 +880,7 @@ export function HostEditModal() {
                       onClick={() => setField("color", c)}
                       disabled={isBusy}
                       title={c}
-                      aria-label={`Color ${c}`}
+                      aria-label={t("colorSwatch", { color: c })}
                       aria-pressed={form.color === c}
                       className={[
                         "w-6 h-6 rounded-full border-2",
@@ -895,36 +900,36 @@ export function HostEditModal() {
               <div className="flex gap-3">
                 <div className="flex-1">
                   <label htmlFor="hem-env" className={labelClass}>
-                    Environment
+                    {t("hostEdit.fields.environment.label")}
                   </label>
                   <CustomSelect
                     id="hem-env"
                     value={form.environment}
                     onChange={(v) => setField("environment", v)}
                     disabled={isBusy}
-                    placeholder="None"
+                    placeholder={t("environment.option.none")}
                     options={[
-                      { value: "", label: "None" },
-                      { value: "production", label: "Production" },
-                      { value: "staging", label: "Staging" },
-                      { value: "dev", label: "Dev" },
-                      { value: "testing", label: "Testing" },
+                      { value: "", label: t("environment.option.none") },
+                      { value: "production", label: t("environment.option.production") },
+                      { value: "staging", label: t("environment.option.staging") },
+                      { value: "dev", label: t("environment.option.dev") },
+                      { value: "testing", label: t("environment.option.testing") },
                     ]}
                   />
                 </div>
 
                 <div className="flex-1">
                   <label htmlFor="hem-os" className={labelClass}>
-                    OS Type
+                    {t("hostEdit.fields.osType.label")}
                   </label>
                   <CustomSelect
                     id="hem-os"
                     value={form.osType}
                     onChange={(v) => setField("osType", v)}
                     disabled={isBusy}
-                    placeholder="Auto"
+                    placeholder={t("hostEdit.fields.osType.auto")}
                     options={[
-                      { value: "", label: "Auto" },
+                      { value: "", label: t("hostEdit.fields.osType.auto") },
                       { value: "linux", label: "Linux" },
                       { value: "macos", label: "macOS" },
                       { value: "windows", label: "Windows" },
@@ -935,19 +940,19 @@ export function HostEditModal() {
               </div>
 
               {/* ════════════════ NOTES ════════════════ */}
-              <SectionHeader>Notes</SectionHeader>
+              <SectionHeader>{t("hostEdit.sections.notes")}</SectionHeader>
 
               <div>
                 <label htmlFor="hem-notes" className={labelClass}>
-                  Notes
-                  <span className="ml-1 text-text-muted font-normal">(optional)</span>
+                  {t("hostEdit.fields.notes.label")}
+                  <span className="ml-1 text-text-muted font-normal">{t("hostEdit.optional")}</span>
                 </label>
                 <textarea
                   id="hem-notes"
                   rows={3}
                   value={form.notes}
                   onChange={(e) => setField("notes", e.target.value)}
-                  placeholder="Notes about this server..."
+                  placeholder={t("hostEdit.fields.notes.placeholder")}
                   disabled={isBusy}
                   className={`${inputClass} resize-none`}
                 />
@@ -991,16 +996,17 @@ interface GroupSelectProps {
 }
 
 function GroupSelect({ id, value, onChange, groups, disabled }: GroupSelectProps) {
+  const { t } = useTranslation("dashboard");
   return (
     <CustomSelect
       id={id}
       value={value}
       onChange={onChange}
       disabled={disabled}
-      placeholder="No group"
+      placeholder={t("hostEdit.fields.group.none")}
       data-testid="host-modal-group"
       options={[
-        { value: "", label: "No group" },
+        { value: "", label: t("hostEdit.fields.group.none") },
         ...groups.map((g) => ({
           value: g.id,
           label: g.name,
@@ -1039,6 +1045,7 @@ function TunnelSection({
   disabled,
   labelClass,
 }: TunnelSectionProps) {
+  const { t } = useTranslation("dashboard");
   const candidates = hosts.filter((h) => h.id !== currentHostId);
   const hasCandidates = candidates.length > 0;
   // A selected value that isn't among the candidates is stale (its host was
@@ -1070,14 +1077,14 @@ function TunnelSection({
           className="h-4 w-4 rounded border-border bg-bg-base text-accent accent-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50 cursor-pointer"
         />
         <span className="text-[length:var(--text-sm)] text-text-primary">
-          Connect through SSH tunnel
+          {t("hostEdit.tunnel.toggle")}
         </span>
       </label>
 
       {/* Hint when the toggle is unavailable because no other hosts exist yet. */}
       {!enabled && !hasCandidates && (
         <p className="text-[length:var(--text-xs)] text-text-muted">
-          Create another saved host first to tunnel through it.
+          {t("hostEdit.tunnel.createAnotherHint")}
         </p>
       )}
 
@@ -1085,7 +1092,7 @@ function TunnelSection({
       {enabled && (
         <div>
           <label htmlFor="hem-tunnel-host" className={labelClass}>
-            Tunnel Host <span className="ml-0.5 text-status-error" aria-hidden="true">*</span>
+            {t("hostEdit.tunnel.hostLabel")} <span className="ml-0.5 text-status-error" aria-hidden="true">*</span>
           </label>
           {hasCandidates ? (
             <>
@@ -1095,20 +1102,18 @@ function TunnelSection({
                 value={selectedIsStale ? "" : value}
                 onChange={onChange}
                 disabled={disabled}
-                placeholder="Select a host…"
+                placeholder={t("hostEdit.tunnel.hostPlaceholder")}
                 options={options}
               />
               {selectedIsStale && (
                 <p className="mt-1 text-[length:var(--text-xs)] text-status-error">
-                  The previously selected tunnel host is no longer available.
-                  Pick another or disable the tunnel.
+                  {t("hostEdit.tunnel.staleSelection")}
                 </p>
               )}
             </>
           ) : (
             <p className="text-[length:var(--text-xs)] text-text-muted px-3 py-2 rounded-lg bg-bg-base border border-border">
-              No other saved hosts available to tunnel through. Create another
-              host first.
+              {t("hostEdit.tunnel.noCandidates")}
             </p>
           )}
         </div>
@@ -1117,7 +1122,7 @@ function TunnelSection({
       {/* Divider separating tunnel config from the fields below */}
       <div className="flex items-center gap-3 my-1">
         <span className="text-[length:var(--text-xs)] font-semibold uppercase tracking-widest text-text-muted whitespace-nowrap">
-          Advanced
+          {t("hostEdit.sections.advanced")}
         </span>
         <div className="flex-1 h-px bg-border" aria-hidden="true" />
       </div>
@@ -1140,6 +1145,7 @@ interface CredentialStatusProps {
  * only the boolean "exists" flag comes from Rust.
  */
 function CredentialStatus({ visible, busy, onClear }: CredentialStatusProps) {
+  const { t } = useTranslation("dashboard");
   if (!visible) return null;
   return (
     <div className="flex items-center justify-between mt-1.5 px-2.5 py-1.5 rounded-md bg-bg-subtle border border-border">
@@ -1169,20 +1175,20 @@ function CredentialStatus({ visible, busy, onClear }: CredentialStatusProps) {
             strokeLinecap="round"
           />
         </svg>
-        Credential saved in system keychain
+        {t("hostEdit.credential.saved")}
       </div>
       <button
         type="button"
         onClick={onClear}
         disabled={busy}
-        aria-label="Clear saved credential"
+        aria-label={t("hostEdit.credential.clearAria")}
         className={[
           "text-[length:var(--text-xs)] text-text-muted hover:text-status-error",
           "transition-colors duration-[var(--duration-fast)]",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded px-1",
         ].join(" ")}
       >
-        Clear
+        {t("hostEdit.credential.clear")}
       </button>
     </div>
   );
@@ -1197,10 +1203,11 @@ interface DeleteConfirmRowProps {
 }
 
 function DeleteConfirmRow({ onCancel, onConfirm, busy }: DeleteConfirmRowProps) {
+  const { t } = useTranslation(["dashboard", "common"]);
   return (
     <div className="flex items-center gap-2 animate-in fade-in slide-in-from-left-1 duration-[var(--duration-fast)]">
       <span className="text-[length:var(--text-xs)] text-text-secondary whitespace-nowrap">
-        Delete this host?
+        {t("hostEdit.deleteConfirm.question")}
       </span>
       <button
         type="button"
@@ -1208,7 +1215,7 @@ function DeleteConfirmRow({ onCancel, onConfirm, busy }: DeleteConfirmRowProps) 
         disabled={busy}
         className="px-3 py-1.5 text-[length:var(--text-xs)] text-text-secondary hover:text-text-primary rounded-md transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        Cancel
+        {t("common:actions.cancel")}
       </button>
       <button
         type="button"
@@ -1218,17 +1225,18 @@ function DeleteConfirmRow({ onCancel, onConfirm, busy }: DeleteConfirmRowProps) 
         autoFocus
         className="px-3 py-1.5 text-[length:var(--text-xs)] font-medium text-text-inverse bg-status-error hover:opacity-90 disabled:opacity-50 rounded-md transition-[opacity] duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        {busy ? "Deleting\u2026" : "Delete"}
+        {busy ? t("hostEdit.deleteConfirm.deleting") : t("common:actions.delete")}
       </button>
     </div>
   );
 }
 
 function LoadingSkeleton() {
+  const { t } = useTranslation("dashboard");
   const skeletonClass = "rounded-md bg-bg-subtle animate-pulse";
 
   return (
-    <div className="flex flex-col gap-3.5" aria-label="Loading host data">
+    <div className="flex flex-col gap-3.5" aria-label={t("hostEdit.loadingAria")}>
       {/* Section header skeleton */}
       <div className={`h-3 w-24 ${skeletonClass}`} />
       {/* Host + port row */}

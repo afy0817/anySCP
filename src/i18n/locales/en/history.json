@@ -1,0 +1,39 @@
+{
+  "title": "History",
+  "subtitle": "Audit log of all SSH connections — when you connected, to which host, and as which user",
+  "totalCount": "{{total}} connections",
+  "searchPlaceholder": "Search connections...",
+  "searchLabel": "Search connection history",
+  "filterByHostLabel": "Filter by host",
+  "allHosts": "All Hosts",
+  "entryTitle": "Double-click to reconnect · Right-click for options",
+  "filterBy": "Filter by {{name}}",
+  "loading": "Loading...",
+  "loadMore": "Load more",
+  "noMatch": "No connections match “{{query}}”",
+  "empty": {
+    "title": "No connection history",
+    "description": "Your SSH connection log will appear here as you connect to hosts"
+  },
+  "contextMenu": {
+    "terminal": "Terminal",
+    "explorer": "Explorer"
+  },
+  "deleteDialog": {
+    "title": "Delete this history record?",
+    "message": "This record will be permanently removed."
+  },
+  "toasts": {
+    "deleteFailed": "Failed to delete history entry."
+  },
+  "dateGroups": {
+    "today": "Today",
+    "yesterday": "Yesterday"
+  },
+  "relative": {
+    "justNow": "Just now",
+    "minutesAgo": "{{n}}m ago",
+    "hoursAgo": "{{n}}h ago",
+    "daysAgo": "{{n}}d ago"
+  }
+}

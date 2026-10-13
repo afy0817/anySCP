@@ -1,0 +1,279 @@
+{
+  "copyLabel": "{{label}} (copy)",
+  "colorSwatch": "Color {{color}}",
+  "environment": {
+    "badge": {
+      "production": "PROD",
+      "staging": "STAGE",
+      "dev": "DEV",
+      "testing": "TEST"
+    },
+    "option": {
+      "none": "None",
+      "production": "Production",
+      "staging": "Staging",
+      "dev": "Dev",
+      "testing": "Testing"
+    }
+  },
+  "hostsPage": {
+    "title": "Hosts",
+    "subtitle": "Manage your saved servers, organize them into groups, and connect with one click",
+    "searchPlaceholder": "Search hosts...",
+    "searchLabel": "Search hosts",
+    "newServer": "New Server",
+    "newServerTitle": "New Server (Cmd+T)",
+    "newS3": "New S3",
+    "newS3Title": "New S3 Connection",
+    "newGroup": "New Group",
+    "import": "Import",
+    "importTitle": "Import from SSH Config",
+    "groupsHeading": "Groups",
+    "hostsHeading": "Hosts",
+    "cloudStorageHeading": "Cloud Storage",
+    "backToAllHosts": "Back to all hosts",
+    "allHosts": "All Hosts",
+    "empty": {
+      "noMatch": "No hosts match “{{query}}”",
+      "groupEmpty": "No hosts in this group yet.",
+      "noHosts": "No saved hosts yet. Connect to a server to save it here."
+    },
+    "toasts": {
+      "hostOrderFailed": "Couldn't save the new host order — reverted.",
+      "groupOrderFailed": "Couldn't save the new group order — reverted.",
+      "s3OrderFailed": "Couldn't save the new connection order — reverted."
+    },
+    "errors": {
+      "s3ConnectFailed": "S3 connection failed",
+      "connectFailedCheck": "Connection failed. Check host, port, and credentials.",
+      "connectFailed": "Connection failed."
+    }
+  },
+  "recent": {
+    "heading": "Recent",
+    "listLabel": "Recent connections",
+    "reconnectTitle": "Reconnect to {{name}} ({{target}})"
+  },
+  "connectionDialog": {
+    "failedTitle": "Connection Failed",
+    "connecting": "Connecting..."
+  },
+  "card": {
+    "connectTitle": "Connect to {{name}}",
+    "openExplorerAria": "Open explorer for {{name}}"
+  },
+  "hostCard": {
+    "ping": "Ping",
+    "terminal": "Terminal",
+    "explorer": "Explorer",
+    "pingAria": "Ping {{name}}",
+    "openTerminalAria": "Open terminal for {{name}}",
+    "tunnelTitle": "Tunnels through {{name}}",
+    "via": "via {{name}}",
+    "deleteTitle": "Delete this host?",
+    "deleteMessage": "This host will be permanently removed.",
+    "health": {
+      "checking": "Pinging...",
+      "reachable": "SSH reachable{{latency}}",
+      "dnsFailed": "DNS failed",
+      "portClosed": "Port unreachable",
+      "sshFailed": "SSH failed",
+      "failed": "Ping failed"
+    }
+  },
+  "s3Card": {
+    "explore": "Explore",
+    "deleteTitle": "Delete this S3 connection?",
+    "deleteMessage": "This connection will be permanently removed."
+  },
+  "groupCard": {
+    "deleteGroup": "Delete Group",
+    "hostCount_one": "{{count}} host",
+    "hostCount_other": "{{count}} hosts"
+  },
+  "groupDelete": {
+    "title": "Delete \"{{name}}\"?",
+    "confirmGroup": "Delete Group",
+    "confirmGroupAndHosts": "Delete Group & Hosts",
+    "emptyMessage": "This empty group will be permanently removed.",
+    "containsHosts_one": "This group contains {{count}} host.",
+    "containsHosts_other": "This group contains {{count}} hosts.",
+    "alsoDeleteHosts_one": "Also delete all {{count}} host in this group",
+    "alsoDeleteHosts_other": "Also delete all {{count}} hosts in this group",
+    "uncheckedHint": "Unchecked: hosts will be moved out of the group"
+  },
+  "groupModal": {
+    "titleNew": "New Group",
+    "titleEdit": "Edit Group",
+    "saving": "Saving…",
+    "create": "Create Group",
+    "nameLabel": "Name",
+    "namePlaceholder": "e.g., Production, Staging, Home Lab",
+    "iconLabel": "Icon",
+    "colorLabel": "Color",
+    "nameRequired": "Group name is required",
+    "saveFailed": "Failed to save group",
+    "icons": {
+      "folder": "Folder",
+      "cloud": "Cloud",
+      "server": "Server",
+      "database": "Database",
+      "globe": "Globe",
+      "shield": "Shield",
+      "code": "Code",
+      "wifi": "Wifi",
+      "home": "Home",
+      "building": "Building2",
+      "rocket": "Rocket",
+      "wrench": "Wrench",
+      "monitor": "Monitor",
+      "lock": "Lock",
+      "zap": "Zap",
+      "cpu": "Cpu",
+      "hardDrive": "HardDrive",
+      "network": "Network",
+      "radio": "Radio",
+      "warehouse": "Warehouse"
+    }
+  },
+  "importSsh": {
+    "title": "Import SSH Config",
+    "importing": "Importing…",
+    "importButton_one": "Import {{count}} host",
+    "importButton_other": "Import {{count}} hosts",
+    "imported_one": "{{count}} host imported",
+    "imported_other": "{{count}} hosts imported",
+    "skipped": "{{n}} skipped",
+    "scanning": "Scanning SSH config...",
+    "browseConfig": "Browse for config file",
+    "noHosts": "No hosts found in SSH config",
+    "tryDifferentFile": "Try a different file",
+    "change": "Change",
+    "selectedCount": "{{selected}} of {{total}} selected",
+    "selectAll": "All",
+    "selectNone": "None",
+    "pattern": "pattern",
+    "exists": "exists",
+    "keyFile": "key:{{file}}",
+    "selectFileTitle": "Select SSH config file",
+    "parseFailed": "Failed to parse SSH config",
+    "importFailed": "Import failed"
+  },
+  "hostEdit": {
+    "titleNew": "New Host",
+    "titleEdit": "Edit Host",
+    "saving": "Saving…",
+    "connecting": "Connecting…",
+    "optional": "(optional)",
+    "sections": {
+      "connection": "Connection",
+      "tunnel": "Tunnel",
+      "advanced": "Advanced",
+      "appearance": "Appearance",
+      "notes": "Notes"
+    },
+    "fields": {
+      "label": {
+        "label": "Label",
+        "placeholder": "e.g., Production Server"
+      },
+      "host": {
+        "label": "Host",
+        "placeholder": "192.168.1.1 or hostname"
+      },
+      "port": {
+        "label": "Port"
+      },
+      "username": {
+        "label": "Username"
+      },
+      "authType": {
+        "label": "Auth Type",
+        "password": "Password",
+        "privateKey": "Private Key"
+      },
+      "group": {
+        "label": "Group",
+        "none": "No group"
+      },
+      "password": {
+        "label": "Password",
+        "placeholder": "Enter password to connect"
+      },
+      "sshKey": {
+        "label": "SSH Key",
+        "placeholder": "Select a key...",
+        "dialogTitle": "Select SSH Private Key (Cmd+Shift+. to show hidden files)"
+      },
+      "passphrase": {
+        "label": "Passphrase",
+        "placeholder": "Leave empty if none"
+      },
+      "keepAlive": {
+        "label": "Keep Alive",
+        "unit": "(seconds)"
+      },
+      "defaultShell": {
+        "label": "Default Shell"
+      },
+      "startupCommand": {
+        "label": "Startup Command"
+      },
+      "startDirectory": {
+        "label": "Start Directory",
+        "placeholder": "~/projects or /var/www",
+        "hint": "Directory the file browser opens in. Defaults to the home folder."
+      },
+      "color": {
+        "label": "Color",
+        "autoTitle": "Auto (hash-based)",
+        "autoAria": "Auto color",
+        "auto": "Auto"
+      },
+      "environment": {
+        "label": "Environment"
+      },
+      "osType": {
+        "label": "OS Type",
+        "auto": "Auto"
+      },
+      "notes": {
+        "label": "Notes",
+        "placeholder": "Notes about this server..."
+      }
+    },
+    "tunnel": {
+      "toggle": "Connect through SSH tunnel",
+      "createAnotherHint": "Create another saved host first to tunnel through it.",
+      "hostLabel": "Tunnel Host",
+      "hostPlaceholder": "Select a host…",
+      "staleSelection": "The previously selected tunnel host is no longer available. Pick another or disable the tunnel.",
+      "noCandidates": "No other saved hosts available to tunnel through. Create another host first."
+    },
+    "credential": {
+      "saved": "Credential saved in system keychain",
+      "clearAria": "Clear saved credential",
+      "clear": "Clear"
+    },
+    "deleteConfirm": {
+      "question": "Delete this host?",
+      "deleting": "Deleting…"
+    },
+    "loadingAria": "Loading host data",
+    "validation": {
+      "hostRequired": "Host is required",
+      "usernameRequired": "Username is required",
+      "portRange": "Port must be between 1 and 65535",
+      "keepAlivePositive": "Keep Alive must be a positive number",
+      "noTunnelCandidates": "No other saved hosts are available to tunnel through",
+      "selectTunnelHost": "Select a tunnel host or disable the SSH tunnel"
+    },
+    "errors": {
+      "loadFailed": "Failed to load host data",
+      "saveFailed": "Failed to save host",
+      "connectFailed": "Connection failed",
+      "deleteFailed": "Failed to delete host",
+      "invalidKey": "Invalid key file"
+    }
+  }
+}

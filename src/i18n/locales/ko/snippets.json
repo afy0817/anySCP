@@ -1,0 +1,146 @@
+{
+  "card": {
+    "lastUsed": {
+      "never": "사용 안 함",
+      "today": "오늘",
+      "yesterday": "어제",
+      "daysAgo": "{{days}}일 전",
+      "monthsAgo": "{{months}}개월 전",
+      "yearsAgo": "{{years}}년 전"
+    },
+    "dangerous": "위험한 명령 — 실행 전 확인 필요",
+    "editSnippet": "스니펫 편집",
+    "usedCount": "{{uses}}회 사용 · {{lastUsed}}",
+    "neverUsed": "사용 기록 없음",
+    "deleteTitle": "이 스니펫을 삭제할까요?",
+    "deleteMessage": "이 스니펫이 영구적으로 삭제돼요."
+  },
+  "editModal": {
+    "titleEdit": "스니펫 편집",
+    "titleNew": "새 스니펫",
+    "saving": "저장 중…",
+    "errors": {
+      "nameRequired": "이름을 입력해 주세요",
+      "commandRequired": "명령어를 입력해 주세요",
+      "saveFailed": "스니펫을 저장하지 못했어요"
+    },
+    "fields": {
+      "name": "이름",
+      "namePlaceholder": "예: Nginx 다시 시작",
+      "command": "명령어",
+      "commandPlaceholder": "예: sudo systemctl restart {{example}}",
+      "commandHint": "<code>{{syntax}}</code> 형식으로 변수를 정의할 수 있어요",
+      "description": "설명",
+      "descriptionPlaceholder": "선택 사항 — 이 스니펫이 하는 일을 적어 주세요",
+      "folder": "폴더",
+      "noFolder": "폴더 없음",
+      "tags": "태그",
+      "dangerous": "위험한 명령으로 표시",
+      "dangerousHint": "실행하기 전에 한 번 더 확인해요"
+    },
+    "variables": {
+      "heading": "변수",
+      "detected": "{{total}}개 감지됨"
+    },
+    "columns": {
+      "variable": "변수",
+      "label": "표시 이름",
+      "default": "기본값",
+      "options": "선택지",
+      "required": "필수"
+    },
+    "variable": {
+      "required": "필수",
+      "label": "표시 이름",
+      "labelPlaceholder": "화면에 표시할 이름",
+      "default": "기본값",
+      "defaultPlaceholder": "기본값",
+      "options": "선택지 (쉼표로 구분)",
+      "optionsPlaceholder": "예: start, stop, restart, status"
+    }
+  },
+  "folderCard": {
+    "deleteFolder": "폴더 삭제",
+    "snippetCount_other": "스니펫 {{count}}개",
+    "deleteTitle": "이 폴더를 삭제할까요?",
+    "deleteMessage": "이 폴더가 영구적으로 삭제돼요."
+  },
+  "folderModal": {
+    "title": "새 폴더",
+    "create": "폴더 만들기",
+    "creating": "만드는 중…",
+    "name": "이름",
+    "namePlaceholder": "예: 웹 서버, Docker, 데이터베이스",
+    "color": "색상",
+    "colorOption": "색상 {{color}}",
+    "errors": {
+      "nameRequired": "폴더 이름을 입력해 주세요",
+      "saveFailed": "폴더를 저장하지 못했어요"
+    }
+  },
+  "palette": {
+    "searchPlaceholder": "스니펫 검색...",
+    "noMatch": "\"{{query}}\"와(과) 일치하는 스니펫이 없어요",
+    "empty": "아직 저장된 스니펫이 없어요",
+    "hints": {
+      "navigate": "이동",
+      "execute": "실행",
+      "close": "닫기",
+      "nextField": "다음 칸",
+      "run": "실행",
+      "back": "뒤로"
+    },
+    "back": "뒤로 (Esc)",
+    "dangerous": "위험한 명령",
+    "run": "실행"
+  },
+  "quickPanel": {
+    "ariaLabel": "스니펫 빠른 패널",
+    "heading": "스니펫",
+    "unpinTitle": "패널 고정 해제 (띄우기)",
+    "pinTitle": "패널 고정 (도킹)",
+    "unpinAria": "스니펫 패널 고정 해제",
+    "pinAria": "스니펫 패널 고정",
+    "closeTitle": "패널 닫기 (Escape)",
+    "closeAria": "스니펫 패널 닫기",
+    "searchPlaceholder": "스니펫 검색...",
+    "searchAria": "스니펫 검색",
+    "noMatch": "“{{query}}”와(과) 일치하는 스니펫이 없어요",
+    "recentlyUsed": "최근 사용",
+    "allSnippets": "모든 스니펫",
+    "empty": "아직 저장된 스니펫이 없어요"
+  },
+  "page": {
+    "title": "스니펫",
+    "subtitle": "자주 쓰는 명령어를 저장하고 폴더로 정리해 클릭 한 번으로 실행할 수 있어요",
+    "searchPlaceholder": "스니펫 검색... (Cmd+F)",
+    "searchAria": "스니펫 검색",
+    "newSnippetTitle": "새 스니펫 (Cmd+N)",
+    "newSnippet": "새 스니펫",
+    "newFolder": "새 폴더",
+    "folders": "폴더",
+    "backToAll": "모든 스니펫으로 돌아가기",
+    "allSnippets": "모든 스니펫",
+    "resultsFor": "\"{{query}}\" 검색 결과",
+    "snippetsHeading": "스니펫",
+    "loading": "불러오는 중…",
+    "copyName": "{{name}} (사본)"
+  },
+  "empty": {
+    "noMatch": "“{{query}}”와(과) 일치하는 스니펫이 없어요",
+    "noneInFolder": "아직 이 폴더에 스니펫이 없어요",
+    "title": "아직 스니펫이 없어요",
+    "hint": "재사용할 명령어에 <code>{{syntax}}</code>를 넣고 클릭 한 번으로 실행해 보세요"
+  },
+  "variableDialog": {
+    "execute": "실행",
+    "dangerWarning": "위험한 명령으로 표시된 스니펫이에요. 실행하기 전에 변수가 채워진 명령어를 꼼꼼히 확인하세요.",
+    "autoFilled": "자동 입력",
+    "noActiveSession": "(활성 세션 없음)",
+    "variables": "변수",
+    "enterPlaceholder": "{{name}} 입력",
+    "required": "필수",
+    "selectPlaceholder": "— 선택 —",
+    "noVariables": "채울 변수가 없어요"
+  }
+}

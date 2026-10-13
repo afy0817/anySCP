@@ -1,0 +1,38 @@
+{
+  "updater": {
+    "disabled": "포크 빌드라 자동 업데이트가 꺼져 있어요",
+    "relaunchFailed": "자동으로 다시 시작하지 못했어요. 앱을 다시 열어 주세요.",
+    "checkFailed": "업데이트를 확인하지 못했어요",
+    "downloadFailed": "업데이트를 다운로드하지 못했어요"
+  },
+  "groups": {
+    "loadFailed": "그룹을 불러오지 못했어요"
+  },
+  "hosts": {
+    "loadFailed": "호스트를 불러오지 못했어요",
+    "copyName": "{{name}} (사본)"
+  },
+  "health": {
+    "pinging": "호스트에 핑 보내는 중…",
+    "pingFailed": "핑 실패"
+  },
+  "tunnels": {
+    "startFailed": "터널을 시작하지 못했어요"
+  },
+  "editor": {
+    "openFailed": "편집기를 열지 못했어요. 설정 → 편집기에서 사용할 편집기를 지정하세요."
+  },
+  "time": {
+    "justNow": "방금",
+    "minutesAgo": "{{minutes}}분 전",
+    "hoursAgo": "{{hours}}시간 전",
+    "yesterday": "어제",
+    "daysAgo": "{{days}}일 전",
+    "monthsAgo": "{{months}}개월 전"
+  },
+  "eta": {
+    "seconds": "~{{seconds}}초",
+    "minutesSeconds": "~{{minutes}}분 {{seconds}}초",
+    "hoursMinutes": "~{{hours}}시간 {{minutes}}분"
+  }
+}

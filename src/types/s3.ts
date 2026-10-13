@@ -38,7 +38,11 @@ export type S3Provider = "aws" | "minio" | "localstack" | "r2" | "b2" | "wasabi"
 
 export interface S3ProviderPreset {
   id: S3Provider;
+  /** Brand name shown as-is (and the English fallback when `labelKey` is set). */
   label: string;
+  /** i18n key for a non-brand label; render with `i18n.t(labelKey)` or a
+   *  `useTranslation([..., "app"])` t(), falling back to `label`. */
+  labelKey?: "app:s3Providers.custom";
   endpointPattern: string;
   regionPlaceholder: string;
   pathStyle: boolean;
@@ -52,5 +56,5 @@ export const S3_PROVIDERS: S3ProviderPreset[] = [
   { id: "b2", label: "Backblaze B2", endpointPattern: "https://s3.{region}.backblazeb2.com", regionPlaceholder: "us-west-004", pathStyle: false },
   { id: "wasabi", label: "Wasabi", endpointPattern: "https://s3.{region}.wasabisys.com", regionPlaceholder: "us-east-1", pathStyle: false },
   { id: "spaces", label: "DigitalOcean Spaces", endpointPattern: "https://{region}.digitaloceanspaces.com", regionPlaceholder: "nyc3", pathStyle: false },
-  { id: "custom", label: "Custom S3-Compatible", endpointPattern: "", regionPlaceholder: "us-east-1", pathStyle: false },
+  { id: "custom", label: "Custom S3-Compatible", labelKey: "app:s3Providers.custom", endpointPattern: "", regionPlaceholder: "us-east-1", pathStyle: false },
 ];

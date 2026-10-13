@@ -1,0 +1,147 @@
+{
+  "card": {
+    "lastUsed": {
+      "never": "never",
+      "today": "today",
+      "yesterday": "yesterday",
+      "daysAgo": "{{days}}d ago",
+      "monthsAgo": "{{months}}mo ago",
+      "yearsAgo": "{{years}}yr ago"
+    },
+    "dangerous": "Dangerous — requires confirmation",
+    "editSnippet": "Edit snippet",
+    "usedCount": "Used {{uses}}x · {{lastUsed}}",
+    "neverUsed": "Never used",
+    "deleteTitle": "Delete this snippet?",
+    "deleteMessage": "This snippet will be permanently removed."
+  },
+  "editModal": {
+    "titleEdit": "Edit Snippet",
+    "titleNew": "New Snippet",
+    "saving": "Saving…",
+    "errors": {
+      "nameRequired": "Name is required",
+      "commandRequired": "Command is required",
+      "saveFailed": "Failed to save snippet"
+    },
+    "fields": {
+      "name": "Name",
+      "namePlaceholder": "e.g., Restart Nginx",
+      "command": "Command",
+      "commandPlaceholder": "e.g., sudo systemctl restart {{example}}",
+      "commandHint": "Use <code>{{syntax}}</code> syntax to define variables.",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional — describe what this snippet does",
+      "folder": "Folder",
+      "noFolder": "No folder",
+      "tags": "Tags",
+      "dangerous": "Flag as dangerous",
+      "dangerousHint": "Requires confirmation before execution."
+    },
+    "variables": {
+      "heading": "Variables",
+      "detected": "{{total}} detected"
+    },
+    "columns": {
+      "variable": "Variable",
+      "label": "Label",
+      "default": "Default",
+      "options": "Options",
+      "required": "Req"
+    },
+    "variable": {
+      "required": "Required",
+      "label": "Label",
+      "labelPlaceholder": "Display label",
+      "default": "Default",
+      "defaultPlaceholder": "Default value",
+      "options": "Options (comma-separated)",
+      "optionsPlaceholder": "e.g., start, stop, restart, status"
+    }
+  },
+  "folderCard": {
+    "deleteFolder": "Delete Folder",
+    "snippetCount_one": "{{count}} snippet",
+    "snippetCount_other": "{{count}} snippets",
+    "deleteTitle": "Delete this folder?",
+    "deleteMessage": "This folder will be permanently removed."
+  },
+  "folderModal": {
+    "title": "New Folder",
+    "create": "Create Folder",
+    "creating": "Creating…",
+    "name": "Name",
+    "namePlaceholder": "e.g., Web Servers, Docker, Database",
+    "color": "Color",
+    "colorOption": "Color {{color}}",
+    "errors": {
+      "nameRequired": "Folder name is required",
+      "saveFailed": "Failed to save folder"
+    }
+  },
+  "palette": {
+    "searchPlaceholder": "Search snippets...",
+    "noMatch": "No snippets match \"{{query}}\"",
+    "empty": "No snippets saved yet",
+    "hints": {
+      "navigate": "navigate",
+      "execute": "execute",
+      "close": "close",
+      "nextField": "next field",
+      "run": "run",
+      "back": "back"
+    },
+    "back": "Back (Esc)",
+    "dangerous": "Dangerous command",
+    "run": "Run"
+  },
+  "quickPanel": {
+    "ariaLabel": "Snippet quick panel",
+    "heading": "Snippets",
+    "unpinTitle": "Unpin panel (float)",
+    "pinTitle": "Pin panel (dock)",
+    "unpinAria": "Unpin snippet panel",
+    "pinAria": "Pin snippet panel",
+    "closeTitle": "Close panel (Escape)",
+    "closeAria": "Close snippet panel",
+    "searchPlaceholder": "Search snippets...",
+    "searchAria": "Search snippets",
+    "noMatch": "No snippets match “{{query}}”",
+    "recentlyUsed": "Recently Used",
+    "allSnippets": "All Snippets",
+    "empty": "No snippets saved yet."
+  },
+  "page": {
+    "title": "Snippets",
+    "subtitle": "Save frequently used commands, organize them into folders, and execute with one click",
+    "searchPlaceholder": "Search snippets... (Cmd+F)",
+    "searchAria": "Search snippets",
+    "newSnippetTitle": "New Snippet (Cmd+N)",
+    "newSnippet": "New Snippet",
+    "newFolder": "New Folder",
+    "folders": "Folders",
+    "backToAll": "Back to all snippets",
+    "allSnippets": "All Snippets",
+    "resultsFor": "Results for \"{{query}}\"",
+    "snippetsHeading": "Snippets",
+    "loading": "Loading...",
+    "copyName": "{{name}} (copy)"
+  },
+  "empty": {
+    "noMatch": "No snippets match “{{query}}”",
+    "noneInFolder": "No snippets in this folder yet.",
+    "title": "No snippets yet",
+    "hint": "Create reusable commands with <code>{{syntax}}</code> for one-click execution."
+  },
+  "variableDialog": {
+    "execute": "Execute",
+    "dangerWarning": "This snippet is flagged as dangerous. Review the resolved command carefully before execution.",
+    "autoFilled": "Auto-filled",
+    "noActiveSession": "(no active session)",
+    "variables": "Variables",
+    "enterPlaceholder": "Enter {{name}}",
+    "required": "required",
+    "selectPlaceholder": "— select —",
+    "noVariables": "No variables to fill in."
+  }
+}

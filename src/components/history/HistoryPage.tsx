@@ -1,4 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { Search, Clock, ChevronDown, Loader2, TerminalSquare, FolderOpen, Trash2 } from "lucide-react";
 import { toast } from "../../stores/toast-store";
 import { CustomSelect } from "../shared/CustomSelect";
@@ -30,15 +32,15 @@ function formatTime(iso: string): string {
   return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
-function relativeTime(iso: string): string {
+function relativeTime(iso: string, t: TFunction<"history">): string {
   const diff = Date.now() - parseSqliteUtc(iso).getTime();
   const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "Just now";
-  if (mins < 60) return `${mins}m ago`;
+  if (mins < 1) return t("relative.justNow");
+  if (mins < 60) return t("relative.minutesAgo", { n: mins });
   const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
+  if (hours < 24) return t("relative.hoursAgo", { n: hours });
   const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
+  if (days < 7) return t("relative.daysAgo", { n: days });
   return formatTime(iso);
 }
 
@@ -48,6 +50,7 @@ const PAGE_SIZE = 50;
 
 
 export function HistoryPage() {
+  const { t } = useTranslation(["history", "common"]);
   const hosts = useHostsStore((s) => s.hosts);
   const loadHosts = useHostsStore((s) => s.loadHosts);
   const [entries, setEntries] = useState<ConnectionHistoryEntry[]>([]);
@@ -168,32 +171,32 @@ export function HistoryPage() {
       offsetRef.current -= 1;
       setConfirmDeleteId(null);
     } catch {
-      toast.error("Failed to delete history entry.");
+      toast.error(t("toasts.deleteFailed"));
     } finally {
       setMutating(false);
     }
-  }, []);
+  }, [t]);
 
   const buildContextItems = (entry: ConnectionHistoryEntry): ContextMenuItem[] => [
     {
-      label: "Terminal",
+      label: t("contextMenu.terminal"),
       icon: TerminalSquare,
       onClick: () => void handleTerminal(entry),
     },
     {
-      label: "Explorer",
+      label: t("contextMenu.explorer"),
       icon: FolderOpen,
       onClick: () => void handleExplorer(entry),
     },
     {
-      label: "Delete",
+      label: t("common:actions.delete"),
       icon: Trash2,
       danger: true,
       disabled: mutating,
       onClick: () => setConfirmDeleteId(entry.id),
     },
     {
-      label: `Filter by ${entry.host_label || entry.host}`,
+      label: t("filterBy", { name: entry.host_label || entry.host }),
       separator: true,
       disabled: mutating,
       onClick: () => {
@@ -211,14 +214,14 @@ export function HistoryPage() {
           {/* Page title */}
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-[length:var(--text-lg)] font-semibold text-text-primary">History</h1>
+              <h1 className="text-[length:var(--text-lg)] font-semibold text-text-primary">{t("title")}</h1>
               <p className="text-[length:var(--text-xs)] text-text-muted mt-1">
-                Audit log of all SSH connections — when you connected, to which host, and as which user
+                {t("subtitle")}
               </p>
             </div>
             {entries.length > 0 && (
               <span className="text-[length:var(--text-2xs)] text-text-muted tabular-nums shrink-0">
-                {totalCount} connections
+                {t("totalCount", { total: totalCount })}
               </span>
             )}
           </div>
@@ -236,8 +239,8 @@ export function HistoryPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Escape") setQuery(""); }}
-              placeholder="Search connections..."
-              aria-label="Search connection history"
+              placeholder={t("searchPlaceholder")}
+              aria-label={t("searchLabel")}
               className={[
                 "w-full pl-10 pr-4 py-2.5 rounded-xl text-[length:var(--text-sm)]",
                 "bg-bg-surface border border-border text-text-primary placeholder:text-text-muted",
@@ -253,9 +256,9 @@ export function HistoryPage() {
               <CustomSelect
                 value={hostFilter ?? ""}
                 onChange={(v) => setHostFilter(v || null)}
-                aria-label="Filter by host"
+                aria-label={t("filterByHostLabel")}
                 options={[
-                  { value: "", label: "All Hosts" },
+                  { value: "", label: t("allHosts") },
                   ...hosts.map((h) => ({
                     value: h.id,
                     label: h.label || `${h.username}@${h.host}`,
@@ -269,61 +272,64 @@ export function HistoryPage() {
           {/* Entries grouped by date */}
           {grouped.length > 0 ? (
             <div className="flex flex-col gap-6">
-              {grouped.map((group) => (
-                <section key={group.label} aria-label={group.label}>
-                  <h2 className="text-[length:var(--text-xs)] font-semibold uppercase tracking-widest text-text-muted mb-3">
-                    {group.label}
-                  </h2>
-                  <div className="rounded-lg bg-bg-surface border border-border/50 divide-y divide-border/30 overflow-hidden">
-                    {group.entries.map((entry) => {
-                      const hasCustomLabel = entry.host_label && entry.host_label !== entry.host && entry.host_label !== `${entry.username}@${entry.host}`;
+              {grouped.map((group) => {
+                const groupLabel = dateGroupLabel(group, t);
+                return (
+                  <section key={group.key} aria-label={groupLabel}>
+                    <h2 className="text-[length:var(--text-xs)] font-semibold uppercase tracking-widest text-text-muted mb-3">
+                      {groupLabel}
+                    </h2>
+                    <div className="rounded-lg bg-bg-surface border border-border/50 divide-y divide-border/30 overflow-hidden">
+                      {group.entries.map((entry) => {
+                        const hasCustomLabel = entry.host_label && entry.host_label !== entry.host && entry.host_label !== `${entry.username}@${entry.host}`;
 
-                      return (
-                        <div
-                          key={entry.id}
-                          data-testid={`history-entry-${entry.id}`}
-                          data-history-host-id={entry.host_id}
-                          data-history-host-label={entry.host_label || entry.host}
-                          onContextMenu={(e) => handleContextMenu(e, entry)}
-                          onDoubleClick={() => void handleTerminal(entry)}
-                          className={[
-                            "flex items-center gap-4 px-4 py-2 cursor-default",
-                            "hover:bg-bg-overlay/40 transition-colors duration-[var(--duration-fast)]",
-                          ].join(" ")}
-                          title="Double-click to reconnect · Right-click for options"
-                        >
-                          {/* Time */}
-                          <span
-                            className="text-[length:var(--text-2xs)] text-text-muted tabular-nums w-14 shrink-0"
-                            title={formatDateTime(entry.connected_at)}
+                        return (
+                          <div
+                            key={entry.id}
+                            data-testid={`history-entry-${entry.id}`}
+                            data-history-host-id={entry.host_id}
+                            data-history-host-label={entry.host_label || entry.host}
+                            onContextMenu={(e) => handleContextMenu(e, entry)}
+                            onDoubleClick={() => void handleTerminal(entry)}
+                            className={[
+                              "flex items-center gap-4 px-4 py-2 cursor-default",
+                              "hover:bg-bg-overlay/40 transition-colors duration-[var(--duration-fast)]",
+                            ].join(" ")}
+                            title={t("entryTitle")}
                           >
-                            {relativeTime(entry.connected_at)}
-                          </span>
-
-                          {/* Host label — clickable to filter */}
-                          <button
-                            onClick={() => {
-                              setHostFilter(entry.host_id);
-                              setQuery("");
-                            }}
-                            className="text-[length:var(--text-sm)] font-medium text-text-primary truncate flex-1 text-left hover:text-accent transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
-                            title={`Filter by ${entry.host_label || entry.host}`}
-                          >
-                            {entry.host_label || entry.host}
-                          </button>
-
-                          {/* User@host — only show if host has a custom label */}
-                          {hasCustomLabel && (
-                            <span className="text-[length:var(--text-2xs)] font-mono text-text-muted truncate max-w-[200px]">
-                              {entry.username}@{entry.host}
+                            {/* Time */}
+                            <span
+                              className="text-[length:var(--text-2xs)] text-text-muted tabular-nums w-14 shrink-0"
+                              title={formatDateTime(entry.connected_at)}
+                            >
+                              {relativeTime(entry.connected_at, t)}
                             </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </section>
-              ))}
+
+                            {/* Host label — clickable to filter */}
+                            <button
+                              onClick={() => {
+                                setHostFilter(entry.host_id);
+                                setQuery("");
+                              }}
+                              className="text-[length:var(--text-sm)] font-medium text-text-primary truncate flex-1 text-left hover:text-accent transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
+                              title={t("filterBy", { name: entry.host_label || entry.host })}
+                            >
+                              {entry.host_label || entry.host}
+                            </button>
+
+                            {/* User@host — only show if host has a custom label */}
+                            {hasCustomLabel && (
+                              <span className="text-[length:var(--text-2xs)] font-mono text-text-muted truncate max-w-[200px]">
+                                {entry.username}@{entry.host}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })}
 
               {/* Load more */}
               {hasMore && !query.trim() && (
@@ -345,7 +351,7 @@ export function HistoryPage() {
                   ) : (
                     <ChevronDown size={14} strokeWidth={2} />
                   )}
-                  {loading ? "Loading..." : "Load more"}
+                  {loading ? t("loading") : t("loadMore")}
                 </button>
               )}
             </div>
@@ -355,16 +361,16 @@ export function HistoryPage() {
             </div>
           ) : entries.length > 0 && query.trim() ? (
             <p className="text-[length:var(--text-sm)] text-text-muted py-8 text-center">
-              No connections match &ldquo;{query}&rdquo;
+              {t("noMatch", { query })}
             </p>
           ) : (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Clock size={30} strokeWidth={1.2} className="text-text-muted/30" />
               <p className="text-[length:var(--text-sm)] text-text-muted">
-                No connection history
+                {t("empty.title")}
               </p>
               <p className="text-[length:var(--text-xs)] text-text-muted/60 text-center max-w-xs">
-                Your SSH connection log will appear here as you connect to hosts
+                {t("empty.description")}
               </p>
             </div>
           )}
@@ -382,8 +388,8 @@ export function HistoryPage() {
 
       <ConfirmDangerDialog
         open={confirmDeleteId !== null}
-        title="Delete this history record?"
-        message="This record will be permanently removed."
+        title={t("deleteDialog.title")}
+        message={t("deleteDialog.message")}
         busy={mutating}
         onCancel={() => setConfirmDeleteId(null)}
         onConfirm={() => {
@@ -396,13 +402,18 @@ export function HistoryPage() {
 
 // ─── Grouping ────────────────────────────────────────────────────────────────
 
+// Groups are keyed by the language-independent `toDateString()` value; the
+// visible heading ("Today" / "Yesterday" / a full date) is produced at render
+// time by dateGroupLabel so it follows a live UI-language switch.
 interface DateGroup {
-  label: string;
+  key: string;
+  kind: "today" | "yesterday" | "date";
+  date: Date;
   entries: ConnectionHistoryEntry[];
 }
 
 function groupByDate(entries: ConnectionHistoryEntry[]): DateGroup[] {
-  const groups = new Map<string, ConnectionHistoryEntry[]>();
+  const groups = new Map<string, DateGroup>();
   const today = new Date();
   const todayStr = today.toDateString();
   const yesterday = new Date(today);
@@ -413,15 +424,24 @@ function groupByDate(entries: ConnectionHistoryEntry[]): DateGroup[] {
     const d = parseSqliteUtc(entry.connected_at);
     const dateStr = d.toDateString();
 
-    const label = dateStr === todayStr
-      ? "Today"
-      : dateStr === yesterdayStr
-        ? "Yesterday"
-        : d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-
-    if (!groups.has(label)) groups.set(label, []);
-    groups.get(label)!.push(entry);
+    let group = groups.get(dateStr);
+    if (!group) {
+      const kind = dateStr === todayStr
+        ? "today"
+        : dateStr === yesterdayStr
+          ? "yesterday"
+          : "date";
+      group = { key: dateStr, kind, date: d, entries: [] };
+      groups.set(dateStr, group);
+    }
+    group.entries.push(entry);
   }
 
-  return Array.from(groups.entries()).map(([label, entries]) => ({ label, entries }));
+  return Array.from(groups.values());
+}
+
+function dateGroupLabel(group: DateGroup, t: TFunction<"history">): string {
+  if (group.kind === "today") return t("dateGroups.today");
+  if (group.kind === "yesterday") return t("dateGroups.yesterday");
+  return group.date.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 }

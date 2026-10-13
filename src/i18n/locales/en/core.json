@@ -1,0 +1,38 @@
+{
+  "updater": {
+    "disabled": "Updates are disabled in this fork build",
+    "relaunchFailed": "Couldn't restart automatically — please reopen the app",
+    "checkFailed": "Failed to check for updates",
+    "downloadFailed": "Download failed"
+  },
+  "groups": {
+    "loadFailed": "Failed to load groups"
+  },
+  "hosts": {
+    "loadFailed": "Failed to load hosts",
+    "copyName": "{{name}} (copy)"
+  },
+  "health": {
+    "pinging": "Pinging host...",
+    "pingFailed": "Ping failed"
+  },
+  "tunnels": {
+    "startFailed": "Tunnel failed to start"
+  },
+  "editor": {
+    "openFailed": "Couldn't open the editor. Configure one in Settings → Editors."
+  },
+  "time": {
+    "justNow": "just now",
+    "minutesAgo": "{{minutes}}m ago",
+    "hoursAgo": "{{hours}}h ago",
+    "yesterday": "yesterday",
+    "daysAgo": "{{days}}d ago",
+    "monthsAgo": "{{months}}mo ago"
+  },
+  "eta": {
+    "seconds": "~{{seconds}}s",
+    "minutesSeconds": "~{{minutes}}m {{seconds}}s",
+    "hoursMinutes": "~{{hours}}h {{minutes}}m"
+  }
+}

@@ -1,0 +1,247 @@
+{
+  "nav": {
+    "ariaLabel": "Settings sections",
+    "heading": "Settings"
+  },
+  "sections": {
+    "appearance": "Appearance",
+    "terminal": "Terminal",
+    "explorer": "Explorer",
+    "transfers": "Transfers",
+    "editors": "Editors",
+    "data": "Data",
+    "about": "About & Updates"
+  },
+  "sectionDescriptions": {
+    "appearance": "Theme and interface look.",
+    "terminal": "Font, cursor, and scrollback history.",
+    "explorer": "How the file browser behaves.",
+    "transfers": "Control how files are transferred.",
+    "editors": "Editors used by “Edit” / “Open With” in the file browser.",
+    "data": "Back up, restore, and reset your data.",
+    "about": "App information, links, and updates."
+  },
+  "fonts": {
+    "geistDefault": "Geist (Default)",
+    "systemUi": "System UI",
+    "jetBrainsMonoDefault": "JetBrains Mono (Default)",
+    "jetBrainsNerdFont": "JetBrains Nerd Font (icons)",
+    "systemMonospace": "System Monospace",
+    "current": "Current"
+  },
+  "theme": {
+    "group": "Theme",
+    "colorTheme": {
+      "label": "Color Theme",
+      "description": "Switch between the dark and softer grey light interface",
+      "dark": "Dark",
+      "light": "Light"
+    },
+    "accent": {
+      "label": "Accent Color",
+      "description": "Used for buttons, links, and active states",
+      "colors": {
+        "blue": "Blue",
+        "indigo": "Indigo",
+        "violet": "Violet",
+        "pink": "Pink",
+        "red": "Red",
+        "orange": "Orange",
+        "green": "Green",
+        "teal": "Teal"
+      },
+      "custom": "Custom",
+      "customColor": "Custom color",
+      "customDialog": "Custom accent color",
+      "lightness": "Lightness",
+      "saturation": "Saturation",
+      "hue": "Accent hue"
+    }
+  },
+  "interface": {
+    "group": "Interface",
+    "language": {
+      "label": "Language",
+      "description": "Language used for menus, labels, and messages"
+    },
+    "font": {
+      "label": "Interface Font",
+      "description": "Font for menus, labels, and panels"
+    },
+    "monoFont": {
+      "label": "Interface Monospace Font",
+      "description": "Font for paths, permissions, and code (not the terminal)"
+    }
+  },
+  "terminal": {
+    "font": {
+      "group": "Font",
+      "family": {
+        "label": "Font Family",
+        "description": "Monospace font used by terminals"
+      },
+      "size": {
+        "label": "Font Size",
+        "description": "Size in pixels (8–42)"
+      },
+      "lineHeight": {
+        "label": "Line Height",
+        "description": "Spacing between lines (1.0–2.0)"
+      }
+    },
+    "cursor": {
+      "group": "Cursor",
+      "style": {
+        "label": "Cursor Style",
+        "description": "Shape of the terminal cursor",
+        "bar": "Bar",
+        "block": "Block",
+        "underline": "Underline"
+      },
+      "blink": {
+        "label": "Cursor Blink",
+        "description": "Animate the cursor"
+      }
+    },
+    "clipboard": {
+      "group": "Clipboard",
+      "copyOnSelect": {
+        "label": "Copy on Select",
+        "description": "Copy highlighted text to the clipboard automatically"
+      },
+      "pasteButton": {
+        "label": "Paste Button",
+        "description": "Mouse button that pastes the clipboard into the terminal",
+        "off": "Off",
+        "right": "Right-click",
+        "middle": "Middle-click"
+      }
+    },
+    "history": {
+      "group": "History",
+      "scrollback": {
+        "label": "Scrollback Buffer",
+        "description": "Number of lines to keep in history (500–100,000)"
+      },
+      "note": "Changes apply to open terminals immediately."
+    }
+  },
+  "explorer": {
+    "doubleClick": {
+      "label": "Double-click a File",
+      "description": "What happens when you double-click a file in the browser",
+      "download": "Download",
+      "open": "Open in Editor"
+    },
+    "note": "Opening falls back to downloading when no editor is configured (see Editors)."
+  },
+  "transfers": {
+    "concurrency": {
+      "label": "Concurrent Transfers",
+      "description": "Maximum simultaneous file transfers (1–10)"
+    }
+  },
+  "data": {
+    "backupGroup": "Backup",
+    "export": {
+      "label": "Export encrypted backup",
+      "description": "Save all hosts, groups, snippets, settings, and stored credentials to a single password-protected file.",
+      "button": "Export…"
+    },
+    "import": {
+      "label": "Import backup",
+      "description": "Restore from a backup file. This replaces all current data and restarts anySCP.",
+      "button": "Import…"
+    },
+    "dangerGroup": "Danger zone",
+    "clear": {
+      "label": "Clear all data",
+      "description": "Permanently delete every saved host, group, connection history entry, snippet, port-forward rule, and S3 connection — along with their stored credentials and all app preferences. anySCP restarts at first-launch state. This can’t be undone.",
+      "button": "Clear all data…"
+    },
+    "fileDialog": {
+      "selectTitle": "Select anySCP backup",
+      "saveTitle": "Save anySCP backup",
+      "filterName": "anySCP backup"
+    }
+  },
+  "backupModal": {
+    "exportTitle": "Export encrypted backup",
+    "importTitle": "Import backup",
+    "exporting": "Exporting…",
+    "chooseAndExport": "Choose file & export",
+    "restoring": "Restoring…",
+    "importAndRestart": "Import & restart",
+    "exportIntro": "Choose a password to encrypt the backup. You’ll need it to restore — there’s no way to recover the data without it.",
+    "importIntro": "Enter the password this backup was created with. Importing replaces all current data and restarts anySCP.",
+    "password": "Password",
+    "passwordMinPlaceholder": "At least {{min}} characters",
+    "passwordPlaceholder": "Backup password",
+    "confirmPassword": "Confirm password",
+    "confirmPlaceholder": "Re-enter password",
+    "mismatch": "Passwords don’t match.",
+    "saved": "Encrypted backup saved.",
+    "exportFailed": "Couldn’t export backup.",
+    "importFailed": "Import failed."
+  },
+  "resetModal": {
+    "title": "Clear all data?",
+    "clearing": "Clearing…",
+    "submit": "Clear all data",
+    "body": "This permanently deletes <strong>all</strong> saved hosts, groups, history, snippets, port-forward rules, S3 connections, stored credentials, and preferences. anySCP will restart fresh. This action cannot be undone.",
+    "typeToConfirm": "Type <code>{{word}}</code> to confirm",
+    "failed": "Couldn’t clear data. Please try again."
+  },
+  "editors": {
+    "group": "Editors",
+    "empty": "No editors configured. Scan for installed editors, or add one manually.",
+    "scanning": "Scanning…",
+    "scan": "Scan for editors",
+    "addCustom": "Add custom editor",
+    "hint": "The starred editor is used by “Edit”; the rest appear under “Open With”.",
+    "foundGroup": "Found on this computer",
+    "noneFound": "No editors found on this computer.",
+    "allAdded": "All detected editors are already added.",
+    "scanFailed": "Couldn't scan for editors.",
+    "defaultBadge": "Default",
+    "defaultEditor": "Default editor",
+    "setDefault": "Set as default",
+    "removeEditor": "Remove {{name}}"
+  },
+  "addEditor": {
+    "title": "Add Editor",
+    "name": "Name",
+    "namePlaceholder": "e.g. Sublime Text",
+    "path": "Executable path",
+    "pickTitle": "Select editor executable",
+    "args": "Arguments",
+    "argsHint": "Use <code>{path}</code> where the file should go. If omitted, it's added at the end.",
+    "submit": "Add editor"
+  },
+  "about": {
+    "group": "About",
+    "tagline": "A modern desktop client for SSH, SFTP, and S3",
+    "repository": {
+      "label": "Repository",
+      "description": "Source code, issues, and releases on GitHub"
+    }
+  },
+  "updates": {
+    "group": "Updates",
+    "auto": {
+      "label": "Automatic Updates",
+      "description": "Download and install updates in the background, applied on the next launch"
+    },
+    "appVersion": "App Version",
+    "upToDate": "You're on the latest version",
+    "available": "v{{version}} is available",
+    "downloading": "Downloading update... {{progress}}%",
+    "ready": "Update downloaded. Restart to apply.",
+    "error": "Something went wrong",
+    "current": "Current: v{{version}}",
+    "readingVersion": "Reading version…",
+    "check": "Check",
+    "checking": "Checking...",
+    "restartNow": "Restart Now"
+  }
+}

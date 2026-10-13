@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Search, Play, ArrowLeft, AlertTriangle } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { Snippet } from "../../types";
 import { useSnippetsStore } from "../../stores/snippets-store";
 import { useSessionStore } from "../../stores/session-store";
@@ -14,6 +15,7 @@ import {
 } from "../../utils/snippet-resolve";
 
 export function SnippetPalette() {
+  const { t } = useTranslation("snippets");
   const open = useUiStore((s) => s.snippetPanelOpen);
   const toggle = useUiStore((s) => s.toggleSnippetPanel);
   const { snippets, loadSnippets } = useSnippetsStore();
@@ -195,7 +197,7 @@ export function SnippetPalette() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search snippets..."
+                placeholder={t("palette.searchPlaceholder")}
                 className="flex-1 bg-transparent text-[length:var(--text-sm)] text-text-primary placeholder:text-text-muted outline-none"
               />
               <kbd className="text-[11px] text-text-muted bg-bg-muted px-1.5 py-0.5 rounded font-mono">esc</kbd>
@@ -205,7 +207,7 @@ export function SnippetPalette() {
             <div ref={listRef} className="max-h-[320px] overflow-y-auto py-1">
               {filtered.length === 0 ? (
                 <p className="text-[length:var(--text-xs)] text-text-muted px-4 py-8 text-center">
-                  {query ? `No snippets match "${query}"` : "No snippets saved yet"}
+                  {query ? t("palette.noMatch", { query }) : t("palette.empty")}
                 </p>
               ) : (
                 filtered.map((snippet, i) => (
@@ -248,9 +250,9 @@ export function SnippetPalette() {
             {/* Footer hint */}
             {filtered.length > 0 && (
               <div className="flex items-center gap-3 px-4 py-2 border-t border-border text-[11px] text-text-muted">
-                <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">↑↓</kbd> navigate</span>
-                <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">↵</kbd> execute</span>
-                <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">esc</kbd> close</span>
+                <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">↑↓</kbd> {t("palette.hints.navigate")}</span>
+                <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">↵</kbd> {t("palette.hints.execute")}</span>
+                <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">esc</kbd> {t("palette.hints.close")}</span>
               </div>
             )}
           </>
@@ -263,7 +265,7 @@ export function SnippetPalette() {
                 type="button"
                 onClick={goBackToBrowse}
                 className="p-1 -ml-1 rounded-md text-text-muted hover:text-accent hover:bg-accent/10 transition-colors"
-                title="Back (Esc)"
+                title={t("palette.back")}
               >
                 <ArrowLeft size={15} strokeWidth={2} />
               </button>
@@ -273,7 +275,7 @@ export function SnippetPalette() {
                 </p>
               </div>
               {activeSnippet.is_dangerous && (
-                <span title="Dangerous command"><AlertTriangle size={14} strokeWidth={2} className="text-status-error shrink-0" /></span>
+                <span title={t("palette.dangerous")}><AlertTriangle size={14} strokeWidth={2} className="text-status-error shrink-0" /></span>
               )}
               <button
                 type="submit"
@@ -281,7 +283,7 @@ export function SnippetPalette() {
                 disabled={hasUnmetRequired}
                 className="flex items-center gap-1.5 h-7 px-3 text-[11px] font-medium rounded-lg text-text-inverse bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors shrink-0"
               >
-                Run
+                {t("palette.run")}
                 <kbd className="text-[10px] opacity-70 font-mono">↵</kbd>
               </button>
             </div>
@@ -340,9 +342,9 @@ export function SnippetPalette() {
 
             {/* Footer */}
             <div className="flex items-center gap-3 px-4 py-2 border-t border-border text-[11px] text-text-muted">
-              <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">tab</kbd> next field</span>
-              <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">↵</kbd> run</span>
-              <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">esc</kbd> back</span>
+              <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">tab</kbd> {t("palette.hints.nextField")}</span>
+              <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">↵</kbd> {t("palette.hints.run")}</span>
+              <span><kbd className="font-mono bg-bg-muted px-1 py-px rounded">esc</kbd> {t("palette.hints.back")}</span>
             </div>
           </form>
         ) : null}

@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Monitor, Braces, Settings, ArrowUpDown, Plug, History, ChevronsLeft, ChevronsRight } from "lucide-react";
 import { useUiStore } from "../../stores/ui-store";
 import { useTabStore, type PageId } from "../../stores/tab-store";
@@ -9,18 +10,23 @@ import { getStatusString } from "../../utils/format";
 interface NavItem {
   id: string;
   icon: React.ElementType;
+  /** Stable English tab label stored in the tab store (e.g. data-tab-label);
+   *  the UI shows `labelKey` (app namespace) translated at render time. */
   label: string;
+  labelKey: NavLabelKey;
   /** For page tabs */
   page?: PageId;
   /** For session-type tabs */
   sessionType?: "terminal" | "sftp";
 }
 
+type NavLabelKey = "pages.hosts" | "pages.snippets" | "pages.portForwarding" | "pages.history";
+
 const NAV_ITEMS: NavItem[] = [
-  { id: "hosts",            icon: Monitor,        label: "Hosts",     page: "hosts" },
-  { id: "snippets",         icon: Braces,         label: "Snippets",  page: "snippets" },
-  { id: "port-forwarding",  icon: Plug,           label: "Tunnels",   page: "port-forwarding" },
-  { id: "history",          icon: History,        label: "History",   page: "history" },
+  { id: "hosts",            icon: Monitor,        label: "Hosts",     labelKey: "pages.hosts",           page: "hosts" },
+  { id: "snippets",         icon: Braces,         label: "Snippets",  labelKey: "pages.snippets",        page: "snippets" },
+  { id: "port-forwarding",  icon: Plug,           label: "Tunnels",   labelKey: "pages.portForwarding",  page: "port-forwarding" },
+  { id: "history",          icon: History,        label: "History",   labelKey: "pages.history",         page: "history" },
 ];
 
 // ─── Pill button ─────────────────────────────────────────────────────────────
@@ -120,6 +126,7 @@ function PillButton({
 // ─── Sidebar ─────────────────────────────────────────────────────────────────
 
 export function Sidebar() {
+  const { t } = useTranslation("app");
   const expanded = useUiStore((s) => s.sidebarExpanded);
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
 
@@ -174,7 +181,7 @@ export function Sidebar() {
       <nav
         data-testid="sidebar"
         data-sidebar-expanded={expanded}
-        aria-label="Main navigation"
+        aria-label={t("sidebar.mainNavigation")}
         className={[
           "no-select flex flex-col shrink-0 h-[calc(100%-16px)] py-3 ml-2 mt-2",
           "bg-bg-surface border border-border/60 rounded-lg",
@@ -188,7 +195,7 @@ export function Sidebar() {
             <PillButton
               key={item.id}
               icon={item.icon}
-              label={item.label}
+              label={t(item.labelKey)}
               isActive={activeNavId === item.id}
               badge={undefined}
               expanded={expanded}
@@ -204,7 +211,7 @@ export function Sidebar() {
         <div className={`flex flex-col gap-1 ${expanded ? "" : "items-center"}`}>
           <PillButton
             icon={ArrowUpDown}
-            label="Transfers"
+            label={t("pages.transfers")}
             isActive={popoverOpen}
             badge={activeTransferCount || undefined}
             expanded={expanded}
@@ -215,7 +222,7 @@ export function Sidebar() {
 
           <PillButton
             icon={Settings}
-            label="Settings"
+            label={t("pages.settings")}
             isActive={activeNavId === "settings"}
             expanded={expanded}
             onClick={() => openPageTab("settings", "Settings")}
@@ -224,7 +231,7 @@ export function Sidebar() {
           {/* Expand/collapse */}
           <PillButton
             icon={expanded ? ChevronsLeft : ChevronsRight}
-            label={expanded ? "Collapse" : "Expand"}
+            label={expanded ? t("sidebar.collapse") : t("sidebar.expand")}
             isActive={false}
             expanded={expanded}
             onClick={toggleSidebar}

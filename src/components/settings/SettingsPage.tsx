@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { Trans, useTranslation } from "react-i18next";
+import { LANGUAGES, type Language } from "../../i18n";
 import { ModalShell, BTN_GHOST, BTN_PRIMARY, BTN_DANGER } from "../shared/ModalShell";
 import { ModalBackdrop } from "../shared/ModalBackdrop";
 import { useSettingsStore } from "../../stores/settings-store";
@@ -49,25 +51,27 @@ const REPO_URL = "https://github.com/macnev2013/anySCP";
 
 type SectionId = "appearance" | "terminal" | "explorer" | "transfers" | "editors" | "data" | "about";
 
-const SECTIONS: { id: SectionId; label: string; icon: LucideIcon }[] = [
-  { id: "appearance", label: "Appearance", icon: Palette },
-  { id: "terminal", label: "Terminal", icon: SquareTerminal },
-  { id: "explorer", label: "Explorer", icon: FolderOpen },
-  { id: "transfers", label: "Transfers", icon: ArrowUpDown },
-  { id: "editors", label: "Editors", icon: FileCode },
-  { id: "data", label: "Data", icon: Database },
-  { id: "about", label: "About & Updates", icon: Info },
-];
+// Labels are i18n keys (settings namespace), translated at render time so a
+// language switch updates them live.
+const SECTIONS = [
+  { id: "appearance", labelKey: "sections.appearance", icon: Palette },
+  { id: "terminal", labelKey: "sections.terminal", icon: SquareTerminal },
+  { id: "explorer", labelKey: "sections.explorer", icon: FolderOpen },
+  { id: "transfers", labelKey: "sections.transfers", icon: ArrowUpDown },
+  { id: "editors", labelKey: "sections.editors", icon: FileCode },
+  { id: "data", labelKey: "sections.data", icon: Database },
+  { id: "about", labelKey: "sections.about", icon: Info },
+] as const satisfies readonly { id: SectionId; labelKey: string; icon: LucideIcon }[];
 
-const SECTION_DESCRIPTIONS: Record<SectionId, string> = {
-  appearance: "Theme and interface look.",
-  terminal: "Font, cursor, and scrollback history.",
-  explorer: "How the file browser behaves.",
-  transfers: "Control how files are transferred.",
-  editors: "Editors used by “Edit” / “Open With” in the file browser.",
-  data: "Back up, restore, and reset your data.",
-  about: "App information, links, and updates.",
-};
+const SECTION_DESCRIPTIONS = {
+  appearance: "sectionDescriptions.appearance",
+  terminal: "sectionDescriptions.terminal",
+  explorer: "sectionDescriptions.explorer",
+  transfers: "sectionDescriptions.transfers",
+  editors: "sectionDescriptions.editors",
+  data: "sectionDescriptions.data",
+  about: "sectionDescriptions.about",
+} as const satisfies Record<SectionId, string>;
 
 // Remember the last-open section across tab switches. The settings page
 // unmounts when another tab is active, so component state alone would reset.
@@ -76,6 +80,7 @@ let lastSettingsSection: SectionId = "appearance";
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function SettingsPage() {
+  const { t } = useTranslation("settings");
   const [active, setActive] = useState<SectionId>(() => lastSettingsSection);
   const selectSection = (id: SectionId) => { lastSettingsSection = id; setActive(id); };
   const activeSection = SECTIONS.find((s) => s.id === active);
@@ -85,13 +90,13 @@ export function SettingsPage() {
       <div className="flex flex-1 min-h-0 rounded-lg overflow-hidden border border-border/60">
         {/* Sidebar */}
         <nav
-          aria-label="Settings sections"
+          aria-label={t("nav.ariaLabel")}
           className="w-60 shrink-0 flex flex-col gap-1 px-3 py-4 border-r border-border/50 bg-bg-surface/40 overflow-y-auto no-select"
         >
           <h2 className="px-3 pt-1 pb-2 text-[length:var(--text-2xs)] font-semibold uppercase tracking-wider text-text-muted">
-            Settings
+            {t("nav.heading")}
           </h2>
-          {SECTIONS.map(({ id, label, icon: Icon }) => {
+          {SECTIONS.map(({ id, labelKey, icon: Icon }) => {
             const isActive = active === id;
             return (
               <button
@@ -115,7 +120,7 @@ export function SettingsPage() {
                   strokeWidth={isActive ? 2 : 1.6}
                   className={`shrink-0 ${isActive ? "text-accent" : "text-text-muted"}`}
                 />
-                {label}
+                {t(labelKey)}
               </button>
             );
           })}
@@ -127,10 +132,10 @@ export function SettingsPage() {
             {/* Section header */}
             <div className="mb-6">
               <h1 className="text-2xl font-semibold tracking-tight text-text-primary">
-                {activeSection?.label}
+                {activeSection && t(activeSection.labelKey)}
               </h1>
               <p className="text-[length:var(--text-sm)] text-text-muted mt-1.5">
-                {SECTION_DESCRIPTIONS[active]}
+                {t(SECTION_DESCRIPTIONS[active])}
               </p>
             </div>
 
@@ -167,9 +172,9 @@ function SectionContent({ section }: { section: SectionId }) {
 // offered (Geist is bundled; System UI is a generic). Entries with a `family`
 // are only shown when that font is actually installed (see availableFonts),
 // since an unavailable font silently falls back to the system default.
-const INTERFACE_FONT_CANDIDATES: { value: string; label: string; family?: string }[] = [
-  { value: "'Geist', system-ui, sans-serif", label: "Geist (Default)" },
-  { value: "system-ui, sans-serif", label: "System UI" },
+const INTERFACE_FONT_CANDIDATES: FontCandidate[] = [
+  { value: "'Geist', system-ui, sans-serif", labelKey: "fonts.geistDefault" },
+  { value: "system-ui, sans-serif", labelKey: "fonts.systemUi" },
   { value: "'Arial', system-ui, sans-serif", label: "Arial", family: "Arial" },
   { value: "'Avenir', system-ui, sans-serif", label: "Avenir", family: "Avenir" },
   { value: "'Avenir Next', system-ui, sans-serif", label: "Avenir Next", family: "Avenir Next" },
@@ -201,9 +206,9 @@ const INTERFACE_FONT_CANDIDATES: { value: string; label: string; family?: string
 // Monospace candidates for the terminal. The default matches the store's
 // terminalFontFamily so it selects correctly; JetBrains Mono is bundled.
 const TERMINAL_FONT_CANDIDATES: FontCandidate[] = [
-  { value: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace", label: "JetBrains Mono (Default)" },
-  { value: "'JetBrainsMono Nerd Font', 'JetBrains Mono', monospace", label: "JetBrains Nerd Font (icons)" },
-  { value: "monospace", label: "System Monospace" },
+  { value: "'JetBrains Mono', 'Fira Code', 'SF Mono', Menlo, monospace", labelKey: "fonts.jetBrainsMonoDefault" },
+  { value: "'JetBrainsMono Nerd Font', 'JetBrains Mono', monospace", labelKey: "fonts.jetBrainsNerdFont" },
+  { value: "monospace", labelKey: "fonts.systemMonospace" },
   { value: "'Cascadia Code', monospace", label: "Cascadia Code", family: "Cascadia Code" },
   { value: "'Cascadia Mono', monospace", label: "Cascadia Mono", family: "Cascadia Mono" },
   { value: "'Consolas', monospace", label: "Consolas", family: "Consolas" },
@@ -229,8 +234,8 @@ const TERMINAL_FONT_CANDIDATES: FontCandidate[] = [
 // uses the OS UI monospace (`ui-monospace`). The rest are common system fonts,
 // filtered to those actually installed.
 const INTERFACE_MONO_FONT_CANDIDATES: FontCandidate[] = [
-  { value: "'JetBrains Mono', 'Fira Code', ui-monospace, monospace", label: "JetBrains Mono (Default)" },
-  { value: "ui-monospace, monospace", label: "System UI" },
+  { value: "'JetBrains Mono', 'Fira Code', ui-monospace, monospace", labelKey: "fonts.jetBrainsMonoDefault" },
+  { value: "ui-monospace, monospace", labelKey: "fonts.systemUi" },
   { value: "'Cascadia Code', monospace", label: "Cascadia Code", family: "Cascadia Code" },
   { value: "'Cascadia Mono', monospace", label: "Cascadia Mono", family: "Cascadia Mono" },
   { value: "'Consolas', monospace", label: "Consolas", family: "Consolas" },
@@ -266,41 +271,56 @@ function isFontAvailable(family: string): boolean {
   return false;
 }
 
-type FontCandidate = { value: string; label: string; family?: string };
+/** Font names (`label`) are shown as-is; generic entries carry an i18n key
+ *  (`labelKey`, settings namespace) translated at render time instead. */
+type FontLabelKey =
+  | "fonts.geistDefault"
+  | "fonts.systemUi"
+  | "fonts.jetBrainsMonoDefault"
+  | "fonts.jetBrainsNerdFont"
+  | "fonts.systemMonospace";
+type FontCandidate = { value: string; family?: string } & (
+  | { label: string; labelKey?: never }
+  | { labelKey: FontLabelKey; label?: never }
+);
 
 /** Filter candidates down to those actually installed on this system. */
-function filterInstalledFonts(candidates: FontCandidate[]): SelectOption[] {
-  return candidates
-    .filter((f) => !f.family || isFontAvailable(f.family))
-    .map(({ value, label }) => ({ value, label }));
+function filterInstalledFonts(candidates: FontCandidate[]): FontCandidate[] {
+  return candidates.filter((f) => !f.family || isFontAvailable(f.family));
 }
 
 /** Font-picker options: installed candidates, re-checked once web fonts load,
  *  with the current value kept selectable even if it isn't detected. */
 function useInstalledFontOptions(candidates: FontCandidate[], current: string): SelectOption[] {
-  const [available, setAvailable] = useState<SelectOption[]>(() => filterInstalledFonts(candidates));
+  const { t } = useTranslation("settings");
+  const [available, setAvailable] = useState<FontCandidate[]>(() => filterInstalledFonts(candidates));
   useEffect(() => {
     let cancelled = false;
     document.fonts?.ready?.then(() => { if (!cancelled) setAvailable(filterInstalledFonts(candidates)); }).catch(() => {});
     return () => { cancelled = true; };
   }, [candidates]);
-  if (available.some((o) => o.value === current)) return available;
+  const labelOf = (c: FontCandidate) => (c.labelKey ? t(c.labelKey) : c.label);
+  const options = available.map((c) => ({ value: c.value, label: labelOf(c) }));
+  if (available.some((o) => o.value === current)) return options;
   const cur = candidates.find((c) => c.value === current);
-  return [{ value: current, label: cur?.label ?? "Current" }, ...available];
+  return [{ value: current, label: cur ? labelOf(cur) : t("fonts.current") }, ...options];
 }
 
-const ACCENT_PRESETS: { name: string; hue: number }[] = [
-  { name: "Blue", hue: 250 },
-  { name: "Indigo", hue: 277 },
-  { name: "Violet", hue: 300 },
-  { name: "Pink", hue: 350 },
-  { name: "Red", hue: 25 },
-  { name: "Orange", hue: 70 },
-  { name: "Green", hue: 150 },
-  { name: "Teal", hue: 195 },
-];
+const ACCENT_PRESETS = [
+  { nameKey: "theme.accent.colors.blue", hue: 250 },
+  { nameKey: "theme.accent.colors.indigo", hue: 277 },
+  { nameKey: "theme.accent.colors.violet", hue: 300 },
+  { nameKey: "theme.accent.colors.pink", hue: 350 },
+  { nameKey: "theme.accent.colors.red", hue: 25 },
+  { nameKey: "theme.accent.colors.orange", hue: 70 },
+  { nameKey: "theme.accent.colors.green", hue: 150 },
+  { nameKey: "theme.accent.colors.teal", hue: 195 },
+] as const satisfies readonly { nameKey: string; hue: number }[];
 
 function AppearanceSettings() {
+  const { t } = useTranslation("settings");
+  const language = useSettingsStore((s) => s.language);
+  const setLanguage = useSettingsStore((s) => s.setLanguage);
   const themeMode = useSettingsStore((s) => s.themeMode);
   const setThemeMode = useSettingsStore((s) => s.setThemeMode);
   const accentHue = useSettingsStore((s) => s.accentHue);
@@ -339,27 +359,27 @@ function AppearanceSettings() {
 
   return (
     <>
-    <SettingsGroup label="Theme">
+    <SettingsGroup label={t("theme.group")}>
       <SettingRow>
         <div>
-          <p className={LABEL_CLASS}>Color Theme</p>
-          <p className={DESC_CLASS}>Switch between the dark and softer grey light interface</p>
+          <p className={LABEL_CLASS}>{t("theme.colorTheme.label")}</p>
+          <p className={DESC_CLASS}>{t("theme.colorTheme.description")}</p>
         </div>
         <SegmentedControl<ThemeMode>
           id="s-light-theme"
           value={themeMode}
           onChange={setThemeMode}
           options={[
-            { value: "dark", label: "Dark" },
-            { value: "light", label: "Light" },
+            { value: "dark", label: t("theme.colorTheme.dark") },
+            { value: "light", label: t("theme.colorTheme.light") },
           ]}
         />
       </SettingRow>
 
       <SettingRow>
         <div>
-          <p className={LABEL_CLASS}>Accent Color</p>
-          <p className={DESC_CLASS}>Used for buttons, links, and active states</p>
+          <p className={LABEL_CLASS}>{t("theme.accent.label")}</p>
+          <p className={DESC_CLASS}>{t("theme.accent.description")}</p>
         </div>
         <div className="flex items-center gap-2.5 shrink-0">
           {ACCENT_PRESETS.map((preset) => {
@@ -369,8 +389,8 @@ function AppearanceSettings() {
               <button
                 key={preset.hue}
                 type="button"
-                title={preset.name}
-                aria-label={preset.name}
+                title={t(preset.nameKey)}
+                aria-label={t(preset.nameKey)}
                 aria-pressed={selected}
                 data-testid={`s-accent-${preset.hue}`}
                 onClick={() => setAccentHue(preset.hue)}
@@ -389,8 +409,8 @@ function AppearanceSettings() {
           <div className="relative" ref={customRef}>
             <button
               type="button"
-              title="Custom"
-              aria-label="Custom color"
+              title={t("theme.accent.custom")}
+              aria-label={t("theme.accent.customColor")}
               aria-haspopup="dialog"
               aria-expanded={wheelOpen}
               aria-pressed={isCustom}
@@ -410,7 +430,7 @@ function AppearanceSettings() {
             {wheelOpen && (
               <div
                 role="dialog"
-                aria-label="Custom accent color"
+                aria-label={t("theme.accent.customDialog")}
                 className="absolute right-0 top-full mt-2 z-50 flex flex-col items-center gap-2 p-3 rounded-xl bg-bg-overlay border border-border shadow-[var(--shadow-lg)]"
               >
                 <HueWheel
@@ -422,7 +442,7 @@ function AppearanceSettings() {
                 />
                 <div className="w-full flex flex-col gap-2.5">
                   <label className="flex flex-col gap-1">
-                    <span className="text-[length:var(--text-2xs)] uppercase tracking-wider text-text-muted">Lightness</span>
+                    <span className="text-[length:var(--text-2xs)] uppercase tracking-wider text-text-muted">{t("theme.accent.lightness")}</span>
                     <input
                       type="range" min={0.45} max={0.85} step={0.01} value={working.l}
                       onChange={(e) => updateCustom({ l: Number(e.target.value) })}
@@ -431,7 +451,7 @@ function AppearanceSettings() {
                     />
                   </label>
                   <label className="flex flex-col gap-1">
-                    <span className="text-[length:var(--text-2xs)] uppercase tracking-wider text-text-muted">Saturation</span>
+                    <span className="text-[length:var(--text-2xs)] uppercase tracking-wider text-text-muted">{t("theme.accent.saturation")}</span>
                     <input
                       type="range" min={0} max={0.3} step={0.005} value={working.c}
                       onChange={(e) => updateCustom({ c: Number(e.target.value) })}
@@ -447,11 +467,23 @@ function AppearanceSettings() {
       </SettingRow>
     </SettingsGroup>
 
-    <SettingsGroup label="Interface">
+    <SettingsGroup label={t("interface.group")}>
       <SettingRow>
         <div>
-          <p className={LABEL_CLASS}>Interface Font</p>
-          <p className={DESC_CLASS}>Font for menus, labels, and panels</p>
+          <p className={LABEL_CLASS}>{t("interface.language.label")}</p>
+          <p className={DESC_CLASS}>{t("interface.language.description")}</p>
+        </div>
+        <SegmentedControl<Language>
+          id="s-language"
+          value={language}
+          onChange={setLanguage}
+          options={LANGUAGES.map((l) => ({ value: l.code, label: l.label }))}
+        />
+      </SettingRow>
+      <SettingRow>
+        <div>
+          <p className={LABEL_CLASS}>{t("interface.font.label")}</p>
+          <p className={DESC_CLASS}>{t("interface.font.description")}</p>
         </div>
         <CustomSelect
           id="s-interface-font"
@@ -465,8 +497,8 @@ function AppearanceSettings() {
       </SettingRow>
       <SettingRow>
         <div>
-          <p className={LABEL_CLASS}>Interface Monospace Font</p>
-          <p className={DESC_CLASS}>Font for paths, permissions, and code (not the terminal)</p>
+          <p className={LABEL_CLASS}>{t("interface.monoFont.label")}</p>
+          <p className={DESC_CLASS}>{t("interface.monoFont.description")}</p>
         </div>
         <CustomSelect
           id="s-interface-mono-font"
@@ -489,6 +521,7 @@ function AppearanceSettings() {
 function HueWheel({ hue, onChange, size = 96, l = 0.70, c = 0.15 }: {
   hue: number; onChange: (h: number) => void; size?: number; l?: number; c?: number;
 }) {
+  const { t } = useTranslation("settings");
   const ref = useRef<HTMLDivElement>(null);
 
   const setFromPointer = useCallback((clientX: number, clientY: number) => {
@@ -516,7 +549,7 @@ function HueWheel({ hue, onChange, size = 96, l = 0.70, c = 0.15 }: {
     <div
       ref={ref}
       role="slider"
-      aria-label="Accent hue"
+      aria-label={t("theme.accent.hue")}
       aria-valuemin={0}
       aria-valuemax={360}
       aria-valuenow={hue}
@@ -549,6 +582,7 @@ function HueWheel({ hue, onChange, size = 96, l = 0.70, c = 0.15 }: {
 }
 
 function TerminalSettings() {
+  const { t } = useTranslation("settings");
   const fontSize = useSettingsStore((s) => s.terminalFontSize);
   const cursorStyle = useSettingsStore((s) => s.terminalCursorStyle);
   const cursorBlink = useSettingsStore((s) => s.terminalCursorBlink);
@@ -571,11 +605,11 @@ function TerminalSettings() {
 
   return (
     <>
-      <SettingsGroup label="Font">
+      <SettingsGroup label={t("terminal.font.group")}>
         <SettingRow>
           <div>
-            <label htmlFor="s-fontfamily" className={LABEL_CLASS}>Font Family</label>
-            <p className={DESC_CLASS}>Monospace font used by terminals</p>
+            <label htmlFor="s-fontfamily" className={LABEL_CLASS}>{t("terminal.font.family.label")}</label>
+            <p className={DESC_CLASS}>{t("terminal.font.family.description")}</p>
           </div>
           <CustomSelect
             id="s-fontfamily"
@@ -590,85 +624,85 @@ function TerminalSettings() {
 
         <SettingRow>
           <div>
-            <label htmlFor="s-fontsize" className={LABEL_CLASS}>Font Size</label>
-            <p className={DESC_CLASS}>Size in pixels (8–42)</p>
+            <label htmlFor="s-fontsize" className={LABEL_CLASS}>{t("terminal.font.size.label")}</label>
+            <p className={DESC_CLASS}>{t("terminal.font.size.description")}</p>
           </div>
           <RangeSetting id="s-fontsize" value={fontSize} min={8} max={42} step={1} unit="px" onChange={setFontSize} />
         </SettingRow>
 
         <SettingRow>
           <div>
-            <label htmlFor="s-lineheight" className={LABEL_CLASS}>Line Height</label>
-            <p className={DESC_CLASS}>Spacing between lines (1.0–2.0)</p>
+            <label htmlFor="s-lineheight" className={LABEL_CLASS}>{t("terminal.font.lineHeight.label")}</label>
+            <p className={DESC_CLASS}>{t("terminal.font.lineHeight.description")}</p>
           </div>
           <RangeSetting id="s-lineheight" value={lineHeight} min={1.0} max={2.0} step={0.1} decimals={1} onChange={setLineHeight} />
         </SettingRow>
       </SettingsGroup>
 
-      <SettingsGroup label="Cursor">
+      <SettingsGroup label={t("terminal.cursor.group")}>
         <SettingRow>
           <div>
-            <p className={LABEL_CLASS}>Cursor Style</p>
-            <p className={DESC_CLASS}>Shape of the terminal cursor</p>
+            <p className={LABEL_CLASS}>{t("terminal.cursor.style.label")}</p>
+            <p className={DESC_CLASS}>{t("terminal.cursor.style.description")}</p>
           </div>
           <SegmentedControl<CursorStyle>
             id="s-cursor"
             value={cursorStyle}
             onChange={setCursorStyle}
             options={[
-              { value: "bar", label: "Bar" },
-              { value: "block", label: "Block" },
-              { value: "underline", label: "Underline" },
+              { value: "bar", label: t("terminal.cursor.style.bar") },
+              { value: "block", label: t("terminal.cursor.style.block") },
+              { value: "underline", label: t("terminal.cursor.style.underline") },
             ]}
           />
         </SettingRow>
 
         <SettingRow>
           <div>
-            <label htmlFor="s-blink" className={LABEL_CLASS}>Cursor Blink</label>
-            <p className={DESC_CLASS}>Animate the cursor</p>
+            <label htmlFor="s-blink" className={LABEL_CLASS}>{t("terminal.cursor.blink.label")}</label>
+            <p className={DESC_CLASS}>{t("terminal.cursor.blink.description")}</p>
           </div>
           <Toggle id="s-blink" checked={cursorBlink} onChange={setCursorBlink} />
         </SettingRow>
       </SettingsGroup>
 
-      <SettingsGroup label="Clipboard">
+      <SettingsGroup label={t("terminal.clipboard.group")}>
         <SettingRow>
           <div>
-            <label htmlFor="s-copyonselect" className={LABEL_CLASS}>Copy on Select</label>
-            <p className={DESC_CLASS}>Copy highlighted text to the clipboard automatically</p>
+            <label htmlFor="s-copyonselect" className={LABEL_CLASS}>{t("terminal.clipboard.copyOnSelect.label")}</label>
+            <p className={DESC_CLASS}>{t("terminal.clipboard.copyOnSelect.description")}</p>
           </div>
           <Toggle id="s-copyonselect" checked={copyOnSelect} onChange={setCopyOnSelect} />
         </SettingRow>
 
         <SettingRow>
           <div>
-            <p className={LABEL_CLASS}>Paste Button</p>
-            <p className={DESC_CLASS}>Mouse button that pastes the clipboard into the terminal</p>
+            <p className={LABEL_CLASS}>{t("terminal.clipboard.pasteButton.label")}</p>
+            <p className={DESC_CLASS}>{t("terminal.clipboard.pasteButton.description")}</p>
           </div>
           <SegmentedControl<PasteButton>
             id="s-pastebutton"
             value={pasteButton}
             onChange={setPasteButton}
             options={[
-              { value: "none", label: "Off" },
-              { value: "right", label: "Right-click" },
-              { value: "middle", label: "Middle-click" },
+              { value: "none", label: t("terminal.clipboard.pasteButton.off") },
+              { value: "right", label: t("terminal.clipboard.pasteButton.right") },
+              { value: "middle", label: t("terminal.clipboard.pasteButton.middle") },
             ]}
           />
         </SettingRow>
       </SettingsGroup>
 
-      <SettingsGroup label="History">
+      <SettingsGroup label={t("terminal.history.group")}>
         <SettingRow>
           <div>
-            <label htmlFor="s-scrollback" className={LABEL_CLASS}>Scrollback Buffer</label>
-            <p className={DESC_CLASS}>Number of lines to keep in history (500–100,000)</p>
+            <label htmlFor="s-scrollback" className={LABEL_CLASS}>{t("terminal.history.scrollback.label")}</label>
+            <p className={DESC_CLASS}>{t("terminal.history.scrollback.description")}</p>
           </div>
           <NumberSetting id="s-scrollback" value={scrollback} min={500} max={100000} step={500} onChange={setScrollback} />
         </SettingRow>
         <p className="px-1 text-[length:var(--text-xs)] text-text-muted">
-          Changes apply to open terminals immediately.
+          {t("terminal.history.note")}
         </p>
       </SettingsGroup>
     </>
@@ -676,6 +710,7 @@ function TerminalSettings() {
 }
 
 function ExplorerSettings() {
+  const { t } = useTranslation("settings");
   const doubleClickAction = useSettingsStore((s) => s.explorerDoubleClickAction);
   const setDoubleClickAction = useSettingsStore((s) => s.setExplorerDoubleClickAction);
 
@@ -683,27 +718,28 @@ function ExplorerSettings() {
     <SettingsGroup>
       <SettingRow>
         <div>
-          <p className={LABEL_CLASS}>Double-click a File</p>
-          <p className={DESC_CLASS}>What happens when you double-click a file in the browser</p>
+          <p className={LABEL_CLASS}>{t("explorer.doubleClick.label")}</p>
+          <p className={DESC_CLASS}>{t("explorer.doubleClick.description")}</p>
         </div>
         <SegmentedControl<DoubleClickAction>
           id="s-doubleclick"
           value={doubleClickAction}
           onChange={setDoubleClickAction}
           options={[
-            { value: "download", label: "Download" },
-            { value: "open", label: "Open in Editor" },
+            { value: "download", label: t("explorer.doubleClick.download") },
+            { value: "open", label: t("explorer.doubleClick.open") },
           ]}
         />
       </SettingRow>
       <p className="px-1 text-[length:var(--text-xs)] text-text-muted">
-        Opening falls back to downloading when no editor is configured (see Editors).
+        {t("explorer.note")}
       </p>
     </SettingsGroup>
   );
 }
 
 function TransferSettings() {
+  const { t } = useTranslation("settings");
   const transferConcurrency = useSettingsStore((s) => s.transferConcurrency);
   const setConcurrency = useSettingsStore((s) => s.setTransferConcurrency);
 
@@ -711,8 +747,8 @@ function TransferSettings() {
     <SettingsGroup>
       <SettingRow>
         <div>
-          <label htmlFor="s-concurrency" className={LABEL_CLASS}>Concurrent Transfers</label>
-          <p className={DESC_CLASS}>Maximum simultaneous file transfers (1–10)</p>
+          <label htmlFor="s-concurrency" className={LABEL_CLASS}>{t("transfers.concurrency.label")}</label>
+          <p className={DESC_CLASS}>{t("transfers.concurrency.description")}</p>
         </div>
         <NumberSetting id="s-concurrency" value={transferConcurrency} min={1} max={10} step={1} onChange={setConcurrency} />
       </SettingRow>
@@ -723,6 +759,7 @@ function TransferSettings() {
 // ─── Data ───────────────────────────────────────────────────────────────────────
 
 function DataSettings() {
+  const { t } = useTranslation("settings");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
   // Import is two-step: pick a file, then prompt for its password.
@@ -734,50 +771,46 @@ function DataSettings() {
       const picked = await open({
         multiple: false,
         directory: false,
-        title: "Select anySCP backup",
-        filters: [{ name: "anySCP backup", extensions: ["ascpbak"] }],
+        title: t("data.fileDialog.selectTitle"),
+        filters: [{ name: t("data.fileDialog.filterName"), extensions: ["ascpbak"] }],
       });
       if (typeof picked === "string") setImportPath(picked);
     } catch { /* dialog cancelled / unavailable */ }
-  }, []);
+  }, [t]);
 
   return (
     <>
-      <SettingsGroup label="Backup">
+      <SettingsGroup label={t("data.backupGroup")}>
         <SettingRow>
           <div>
-            <p className={LABEL_CLASS}>Export encrypted backup</p>
+            <p className={LABEL_CLASS}>{t("data.export.label")}</p>
             <p className={DESC_CLASS}>
-              Save all hosts, groups, snippets, settings, and stored credentials to a
-              single password-protected file.
+              {t("data.export.description")}
             </p>
           </div>
           <button type="button" data-testid="s-export-backup" onClick={() => setExportOpen(true)} className={BTN_SECONDARY}>
-            <Download size={13} strokeWidth={2} /> Export…
+            <Download size={13} strokeWidth={2} /> {t("data.export.button")}
           </button>
         </SettingRow>
         <SettingRow>
           <div>
-            <p className={LABEL_CLASS}>Import backup</p>
+            <p className={LABEL_CLASS}>{t("data.import.label")}</p>
             <p className={DESC_CLASS}>
-              Restore from a backup file. This replaces all current data and restarts anySCP.
+              {t("data.import.description")}
             </p>
           </div>
           <button type="button" data-testid="s-import-backup" onClick={() => void pickImportFile()} className={BTN_SECONDARY}>
-            <Upload size={13} strokeWidth={2} /> Import…
+            <Upload size={13} strokeWidth={2} /> {t("data.import.button")}
           </button>
         </SettingRow>
       </SettingsGroup>
 
-      <SettingsGroup label="Danger zone">
+      <SettingsGroup label={t("data.dangerGroup")}>
         <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-bg-surface border border-status-error/30">
           <div>
-            <p className={LABEL_CLASS}>Clear all data</p>
+            <p className={LABEL_CLASS}>{t("data.clear.label")}</p>
             <p className={DESC_CLASS}>
-              Permanently delete every saved host, group, connection history entry,
-              snippet, port-forward rule, and S3 connection — along with their stored
-              credentials and all app preferences. anySCP restarts at first-launch state.
-              This can’t be undone.
+              {t("data.clear.description")}
             </p>
           </div>
           <button
@@ -793,7 +826,7 @@ function DataSettings() {
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
             ].join(" ")}
           >
-            <Trash2 size={13} strokeWidth={2} /> Clear all data…
+            <Trash2 size={13} strokeWidth={2} /> {t("data.clear.button")}
           </button>
         </div>
       </SettingsGroup>
@@ -820,6 +853,7 @@ function BackupPasswordModal({ mode, open, path, onClose }: {
   path?: string;
   onClose: () => void;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   const isExport = mode === "export";
   const MIN_LEN = 8;
   const [pw, setPw] = useState("");
@@ -850,13 +884,13 @@ function BackupPasswordModal({ mode, open, path, onClose }: {
         const d = new Date();
         const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
         const dest = await save({
-          title: "Save anySCP backup",
+          title: t("data.fileDialog.saveTitle"),
           defaultPath: `anyscp-backup-${stamp}.ascpbak`,
-          filters: [{ name: "anySCP backup", extensions: ["ascpbak"] }],
+          filters: [{ name: t("data.fileDialog.filterName"), extensions: ["ascpbak"] }],
         });
         if (!dest) { setBusy(false); return; } // dialog cancelled — keep the modal open
         await invoke("backup_export", { password: pw, path: dest });
-        toast.success("Encrypted backup saved.");
+        toast.success(t("backupModal.saved"));
         onClose();
       } else {
         await invoke("backup_import", { password: pw, path });
@@ -873,15 +907,15 @@ function BackupPasswordModal({ mode, open, path, onClose }: {
       const msg = e && typeof e === "object" && "message" in e
         ? String((e as { message: unknown }).message)
         : null;
-      toast.error(msg ?? (isExport ? "Couldn’t export backup." : "Import failed."));
+      toast.error(msg ?? (isExport ? t("backupModal.exportFailed") : t("backupModal.importFailed")));
     }
-  }, [canSubmit, isExport, pw, path, onClose]);
+  }, [canSubmit, isExport, pw, path, onClose, t]);
 
   return (
     <ModalShell
       open={open}
       onClose={onClose}
-      title={isExport ? "Export encrypted backup" : "Import backup"}
+      title={isExport ? t("backupModal.exportTitle") : t("backupModal.importTitle")}
       icon={isExport ? ShieldCheck : AlertCircle}
       iconVariant={isExport ? "accent" : "danger"}
       maxWidth="md"
@@ -889,7 +923,7 @@ function BackupPasswordModal({ mode, open, path, onClose }: {
       testId={`backup-modal-${mode}`}
       footer={
         <>
-          <button type="button" onClick={onClose} disabled={busy} className={BTN_GHOST}>Cancel</button>
+          <button type="button" onClick={onClose} disabled={busy} className={BTN_GHOST}>{t("common:actions.cancel")}</button>
           <button
             form="backup-form"
             type="submit"
@@ -898,7 +932,9 @@ function BackupPasswordModal({ mode, open, path, onClose }: {
             className={isExport ? BTN_PRIMARY : BTN_DANGER}
           >
             {busy && <RefreshCw size={13} strokeWidth={2} className="motion-safe:animate-spin" />}
-            {isExport ? (busy ? "Exporting…" : "Choose file & export") : (busy ? "Restoring…" : "Import & restart")}
+            {isExport
+              ? (busy ? t("backupModal.exporting") : t("backupModal.chooseAndExport"))
+              : (busy ? t("backupModal.restoring") : t("backupModal.importAndRestart"))}
           </button>
         </>
       }
@@ -906,12 +942,12 @@ function BackupPasswordModal({ mode, open, path, onClose }: {
         <form id="backup-form" onSubmit={(e) => { e.preventDefault(); void submit(); }} className="flex flex-col gap-4">
           <p className="text-[length:var(--text-sm)] text-text-secondary">
             {isExport
-              ? "Choose a password to encrypt the backup. You’ll need it to restore — there’s no way to recover the data without it."
-              : "Enter the password this backup was created with. Importing replaces all current data and restarts anySCP."}
+              ? t("backupModal.exportIntro")
+              : t("backupModal.importIntro")}
           </p>
 
           <div>
-            <label htmlFor="backup-pw" className={FIELD_LABEL_CLASS}>Password</label>
+            <label htmlFor="backup-pw" className={FIELD_LABEL_CLASS}>{t("backupModal.password")}</label>
             <input
               ref={inputRef}
               id="backup-pw"
@@ -921,14 +957,14 @@ function BackupPasswordModal({ mode, open, path, onClose }: {
               value={pw}
               disabled={busy}
               onChange={(e) => setPw(e.target.value)}
-              placeholder={isExport ? `At least ${MIN_LEN} characters` : "Backup password"}
+              placeholder={isExport ? t("backupModal.passwordMinPlaceholder", { min: MIN_LEN }) : t("backupModal.passwordPlaceholder")}
               className={TEXT_INPUT_CLASS}
             />
           </div>
 
           {isExport && (
             <div>
-              <label htmlFor="backup-pw2" className={FIELD_LABEL_CLASS}>Confirm password</label>
+              <label htmlFor="backup-pw2" className={FIELD_LABEL_CLASS}>{t("backupModal.confirmPassword")}</label>
               <input
                 id="backup-pw2"
                 data-testid="backup-password-confirm"
@@ -937,11 +973,11 @@ function BackupPasswordModal({ mode, open, path, onClose }: {
                 value={confirm}
                 disabled={busy}
                 onChange={(e) => setConfirm(e.target.value)}
-                placeholder="Re-enter password"
+                placeholder={t("backupModal.confirmPlaceholder")}
                 className={TEXT_INPUT_CLASS}
               />
               {confirm.length > 0 && pw !== confirm && (
-                <p className="mt-1 text-[length:var(--text-xs)] text-status-error">Passwords don’t match.</p>
+                <p className="mt-1 text-[length:var(--text-xs)] text-status-error">{t("backupModal.mismatch")}</p>
               )}
             </div>
           )}
@@ -954,6 +990,7 @@ function BackupPasswordModal({ mode, open, path, onClose }: {
 /** Typed-confirmation dialog for the irreversible factory reset. The user must
  *  type the confirm word, then we wipe the backend and relaunch the app. */
 function ConfirmResetModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useTranslation(["settings", "common"]);
   const CONFIRM_WORD = "DELETE";
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -986,15 +1023,15 @@ function ConfirmResetModal({ open, onClose }: { open: boolean; onClose: () => vo
       }
     } catch {
       setBusy(false);
-      toast.error("Couldn’t clear data. Please try again.");
+      toast.error(t("resetModal.failed"));
     }
-  }, []);
+  }, [t]);
 
   return (
     <ModalShell
       open={open}
       onClose={onClose}
-      title="Clear all data?"
+      title={t("resetModal.title")}
       icon={AlertCircle}
       iconVariant="danger"
       maxWidth="md"
@@ -1002,7 +1039,7 @@ function ConfirmResetModal({ open, onClose }: { open: boolean; onClose: () => vo
       testId="reset-modal"
       footer={
         <>
-          <button type="button" onClick={onClose} disabled={busy} className={BTN_GHOST}>Cancel</button>
+          <button type="button" onClick={onClose} disabled={busy} className={BTN_GHOST}>{t("common:actions.cancel")}</button>
           <button
             type="button"
             data-testid="reset-confirm-submit"
@@ -1011,20 +1048,27 @@ function ConfirmResetModal({ open, onClose }: { open: boolean; onClose: () => vo
             className={`flex items-center gap-1.5 ${BTN_DANGER}`}
           >
             {busy && <RefreshCw size={13} strokeWidth={2} className="motion-safe:animate-spin" />}
-            {busy ? "Clearing…" : "Clear all data"}
+            {busy ? t("resetModal.clearing") : t("resetModal.submit")}
           </button>
         </>
       }
     >
         <div className="flex flex-col gap-4">
           <p className="text-[length:var(--text-sm)] text-text-secondary">
-            This permanently deletes <strong className="text-text-primary">all</strong> saved
-            hosts, groups, history, snippets, port-forward rules, S3 connections, stored
-            credentials, and preferences. anySCP will restart fresh. This action cannot be undone.
+            <Trans
+              t={t}
+              i18nKey="resetModal.body"
+              components={{ strong: <strong className="text-text-primary" /> }}
+            />
           </p>
           <div>
             <label htmlFor="reset-confirm" className={FIELD_LABEL_CLASS}>
-              Type <code className="px-1 rounded bg-bg-base text-status-error">{CONFIRM_WORD}</code> to confirm
+              <Trans
+                t={t}
+                i18nKey="resetModal.typeToConfirm"
+                values={{ word: CONFIRM_WORD }}
+                components={{ code: <code className="px-1 rounded bg-bg-base text-status-error" /> }}
+              />
             </label>
             <input
               ref={inputRef}
@@ -1052,6 +1096,7 @@ function ConfirmResetModal({ open, onClose }: { open: boolean; onClose: () => vo
 type DetectedEditor = { name: string; execPath: string; args: string };
 
 function EditorsSettings() {
+  const { t } = useTranslation(["settings", "common"]);
   const editors = useSettingsStore((s) => s.editors);
   const defaultEditorId = useSettingsStore((s) => s.defaultEditorId);
   const addEditor = useSettingsStore((s) => s.addEditor);
@@ -1076,23 +1121,23 @@ function EditorsSettings() {
       const configured = new Set(useSettingsStore.getState().editors.map((e) => e.execPath));
       if (found.filter((e) => !configured.has(e.execPath)).length === 0) {
         toast.info(found.length === 0
-          ? "No editors found on this computer."
-          : "All detected editors are already added.");
+          ? t("editors.noneFound")
+          : t("editors.allAdded"));
       }
     } catch {
-      toast.error("Couldn't scan for editors.");
+      toast.error(t("editors.scanFailed"));
     } finally {
       setDetecting(false);
     }
-  }, []);
+  }, [t]);
 
   return (
     <>
-      <SettingsGroup label="Editors">
+      <SettingsGroup label={t("editors.group")}>
         {editors.length === 0 ? (
           <div className="px-4 py-6 rounded-xl bg-bg-surface border border-border/50 text-center">
             <p className="text-[length:var(--text-sm)] text-text-muted">
-              No editors configured. Scan for installed editors, or add one manually.
+              {t("editors.empty")}
             </p>
           </div>
         ) : (
@@ -1115,23 +1160,23 @@ function EditorsSettings() {
             {detecting
               ? <RefreshCw size={13} strokeWidth={2} className="motion-safe:animate-spin" />
               : <Search size={13} strokeWidth={2} />}
-            {detecting ? "Scanning…" : "Scan for editors"}
+            {detecting ? t("editors.scanning") : t("editors.scan")}
           </button>
           <button onClick={() => setCustomOpen(true)} className={BTN_SECONDARY}>
-            <Plus size={13} strokeWidth={2} /> Add custom editor
+            <Plus size={13} strokeWidth={2} /> {t("editors.addCustom")}
           </button>
         </div>
 
         {editors.length > 0 && (
           <p className="px-1 mt-2 text-[length:var(--text-xs)] text-text-muted">
-            The starred editor is used by “Edit”; the rest appear under “Open With”.
+            {t("editors.hint")}
           </p>
         )}
       </SettingsGroup>
 
       {/* Detected-but-not-added editors appear only after a scan turns some up. */}
       {newlyDetected.length > 0 && (
-        <SettingsGroup label="Found on this computer">
+        <SettingsGroup label={t("editors.foundGroup")}>
           <div className="flex flex-col gap-2">
             {newlyDetected.map((ed) => (
               <div
@@ -1148,7 +1193,7 @@ function EditorsSettings() {
                   onClick={() => addEditor({ name: ed.name, execPath: ed.execPath, args: ed.args || "{path}" })}
                   className={BTN_SECONDARY}
                 >
-                  <Plus size={13} strokeWidth={2} /> Add
+                  <Plus size={13} strokeWidth={2} /> {t("common:actions.add")}
                 </button>
               </div>
             ))}
@@ -1167,13 +1212,14 @@ function EditorRow({ editor, isDefault, onMakeDefault, onRemove }: {
   onMakeDefault: () => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   return (
     <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl bg-bg-surface border border-border/50">
       <div className="min-w-0">
         <p className={`${LABEL_CLASS} flex items-center gap-1.5`}>
           {editor.name}
           {isDefault && (
-            <span className="text-[length:var(--text-2xs)] font-medium text-accent uppercase tracking-wide">Default</span>
+            <span className="text-[length:var(--text-2xs)] font-medium text-accent uppercase tracking-wide">{t("editors.defaultBadge")}</span>
           )}
         </p>
         <p className="text-[length:var(--text-xs)] text-text-muted truncate" title={editor.execPath}>
@@ -1185,8 +1231,8 @@ function EditorRow({ editor, isDefault, onMakeDefault, onRemove }: {
           type="button"
           onClick={onMakeDefault}
           disabled={isDefault}
-          title={isDefault ? "Default editor" : "Set as default"}
-          aria-label={isDefault ? "Default editor" : "Set as default"}
+          title={isDefault ? t("editors.defaultEditor") : t("editors.setDefault")}
+          aria-label={isDefault ? t("editors.defaultEditor") : t("editors.setDefault")}
           className={[
             "p-1.5 rounded-lg border transition-colors duration-[var(--duration-fast)]",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
@@ -1200,8 +1246,8 @@ function EditorRow({ editor, isDefault, onMakeDefault, onRemove }: {
         <button
           type="button"
           onClick={onRemove}
-          title="Remove"
-          aria-label={`Remove ${editor.name}`}
+          title={t("common:actions.remove")}
+          aria-label={t("editors.removeEditor", { name: editor.name })}
           className="p-1.5 rounded-lg border border-border text-text-muted hover:text-status-error hover:border-status-error/40 transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Trash2 size={15} strokeWidth={2} />
@@ -1218,6 +1264,7 @@ function AddEditorModal({ open, onClose, onAdd }: {
   onClose: () => void;
   onAdd: (editor: Omit<EditorConfig, "id">) => void;
 }) {
+  const { t } = useTranslation(["settings", "common"]);
   const [name, setName] = useState("");
   const [execPath, setExecPath] = useState("");
   const [args, setArgs] = useState("{path}");
@@ -1251,14 +1298,14 @@ function AddEditorModal({ open, onClose, onAdd }: {
   const browse = useCallback(async () => {
     try {
       const { open: openDialog } = await import("@tauri-apps/plugin-dialog");
-      const picked = await openDialog({ multiple: false, directory: false, title: "Select editor executable" });
+      const picked = await openDialog({ multiple: false, directory: false, title: t("addEditor.pickTitle") });
       if (typeof picked === "string") {
         setExecPath(picked);
         // Pre-fill the name from the file/app name when it's still blank.
         setName((cur) => (cur.trim() ? cur : (picked.split(/[\\/]/).pop() ?? "").replace(/\.(app|exe)$/i, "")));
       }
     } catch { /* dialog cancelled / unavailable */ }
-  }, []);
+  }, [t]);
 
   const canAdd = name.trim().length > 0 && execPath.trim().length > 0;
 
@@ -1292,11 +1339,11 @@ function AddEditorModal({ open, onClose, onAdd }: {
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border shrink-0">
-          <h2 className="text-[length:var(--text-lg)] font-semibold text-text-primary">Add Editor</h2>
+          <h2 className="text-[length:var(--text-lg)] font-semibold text-text-primary">{t("addEditor.title")}</h2>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t("common:actions.close")}
             className="p-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-subtle transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
@@ -1308,7 +1355,7 @@ function AddEditorModal({ open, onClose, onAdd }: {
         {/* Body */}
         <div className="px-6 py-4 overflow-y-auto flex-1 min-h-0 flex flex-col gap-4">
           <div>
-            <label htmlFor="ed-name" className={FIELD_LABEL_CLASS}>Name</label>
+            <label htmlFor="ed-name" className={FIELD_LABEL_CLASS}>{t("addEditor.name")}</label>
             <input
               ref={nameRef}
               id="ed-name"
@@ -1316,13 +1363,13 @@ function AddEditorModal({ open, onClose, onAdd }: {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Sublime Text"
+              placeholder={t("addEditor.namePlaceholder")}
               className={TEXT_INPUT_CLASS}
             />
           </div>
 
           <div>
-            <label htmlFor="ed-path" className={FIELD_LABEL_CLASS}>Executable path</label>
+            <label htmlFor="ed-path" className={FIELD_LABEL_CLASS}>{t("addEditor.path")}</label>
             <div className="flex items-center gap-2">
               <input
                 id="ed-path"
@@ -1338,13 +1385,13 @@ function AddEditorModal({ open, onClose, onAdd }: {
                 onClick={() => void browse()}
                 className="inline-flex items-center gap-1.5 px-3 py-2 shrink-0 rounded-lg text-[length:var(--text-sm)] font-medium bg-bg-base border border-border text-text-secondary hover:text-text-primary hover:border-border-focus hover:bg-bg-overlay transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                <FolderOpen size={13} strokeWidth={2} /> Browse
+                <FolderOpen size={13} strokeWidth={2} /> {t("common:actions.browse")}
               </button>
             </div>
           </div>
 
           <div>
-            <label htmlFor="ed-args" className={FIELD_LABEL_CLASS}>Arguments</label>
+            <label htmlFor="ed-args" className={FIELD_LABEL_CLASS}>{t("addEditor.args")}</label>
             <input
               id="ed-args"
               data-testid="ed-args"
@@ -1355,7 +1402,11 @@ function AddEditorModal({ open, onClose, onAdd }: {
               className={TEXT_INPUT_CLASS}
             />
             <p className={DESC_CLASS}>
-              Use <code className="px-1 rounded bg-bg-base">{"{path}"}</code> where the file should go. If omitted, it's added at the end.
+              <Trans
+                t={t}
+                i18nKey="addEditor.argsHint"
+                components={{ code: <code className="px-1 rounded bg-bg-base" /> }}
+              />
             </p>
           </div>
         </div>
@@ -1367,14 +1418,14 @@ function AddEditorModal({ open, onClose, onAdd }: {
             onClick={onClose}
             className="px-4 py-2 text-[length:var(--text-sm)] text-text-secondary hover:text-text-primary rounded-lg transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            Cancel
+            {t("common:actions.cancel")}
           </button>
           <button
             type="submit"
             disabled={!canAdd}
             className="px-4 py-2 text-[length:var(--text-sm)] font-medium text-text-inverse bg-accent hover:bg-accent-hover disabled:opacity-50 disabled:cursor-not-allowed rounded-lg transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg-overlay"
           >
-            Add editor
+            {t("addEditor.submit")}
           </button>
         </div>
       </form>
@@ -1383,19 +1434,20 @@ function AddEditorModal({ open, onClose, onAdd }: {
 }
 
 function AboutSettings() {
+  const { t } = useTranslation("settings");
   const autoUpdate = useSettingsStore((s) => s.autoUpdate);
   const setAutoUpdate = useSettingsStore((s) => s.setAutoUpdate);
 
   return (
     <>
-      <SettingsGroup label="About">
+      <SettingsGroup label={t("about.group")}>
         <AboutCard />
       </SettingsGroup>
-      <SettingsGroup label="Updates">
+      <SettingsGroup label={t("updates.group")}>
         <SettingRow>
           <div>
-            <label htmlFor="s-auto-update" className={LABEL_CLASS}>Automatic Updates</label>
-            <p className={DESC_CLASS}>Download and install updates in the background, applied on the next launch</p>
+            <label htmlFor="s-auto-update" className={LABEL_CLASS}>{t("updates.auto.label")}</label>
+            <p className={DESC_CLASS}>{t("updates.auto.description")}</p>
           </div>
           <Toggle id="s-auto-update" checked={autoUpdate} onChange={setAutoUpdate} />
         </SettingRow>
@@ -1406,6 +1458,7 @@ function AboutSettings() {
 }
 
 function AboutCard() {
+  const { t } = useTranslation("settings");
   const [appVersion, setAppVersion] = useState<string | null>(null);
 
   // Real app version (injected from git tags at build).
@@ -1430,7 +1483,7 @@ function AboutCard() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-[length:var(--text-base)] font-semibold text-text-primary">anySCP</p>
-          <p className={DESC_CLASS}>A modern desktop client for SSH, SFTP, and S3</p>
+          <p className={DESC_CLASS}>{t("about.tagline")}</p>
         </div>
         <span className="shrink-0 text-[length:var(--text-xs)] tabular-nums text-text-muted">
           {appVersion ? `v${appVersion}` : ""}
@@ -1439,8 +1492,8 @@ function AboutCard() {
 
       <div className="mt-3 pt-3 border-t border-border/50 flex items-center justify-between gap-4">
         <div>
-          <p className={LABEL_CLASS}>Repository</p>
-          <p className={DESC_CLASS}>Source code, issues, and releases on GitHub</p>
+          <p className={LABEL_CLASS}>{t("about.repository.label")}</p>
+          <p className={DESC_CLASS}>{t("about.repository.description")}</p>
         </div>
         <button
           onClick={() => void openRepo()}
@@ -1554,6 +1607,7 @@ function SegmentedControl<T extends string>({ id, value, onChange, options }: {
 // ─── Update checker ─────────────────────────────────────────────────────────
 
 function UpdateChecker() {
+  const { t } = useTranslation("settings");
   const status = useUpdaterStore((s) => s.status);
   const version = useUpdaterStore((s) => s.version);
   const error = useUpdaterStore((s) => s.error);
@@ -1573,14 +1627,14 @@ function UpdateChecker() {
     <div className="px-4 py-3 rounded-xl bg-bg-surface border border-border/50">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className={LABEL_CLASS}>App Version</p>
+          <p className={LABEL_CLASS}>{t("updates.appVersion")}</p>
           <p className={DESC_CLASS}>
-            {status === "up-to-date" && "You're on the latest version"}
-            {status === "available" && `v${version} is available`}
-            {status === "downloading" && `Downloading update... ${progress}%`}
-            {status === "ready" && "Update downloaded. Restart to apply."}
-            {status === "error" && (error ?? "Something went wrong")}
-            {(status === "idle" || status === "checking") && (appVersion ? `Current: v${appVersion}` : "Reading version\u2026")}
+            {status === "up-to-date" && t("updates.upToDate")}
+            {status === "available" && t("updates.available", { version })}
+            {status === "downloading" && t("updates.downloading", { progress })}
+            {status === "ready" && t("updates.ready")}
+            {status === "error" && (error ?? t("updates.error"))}
+            {(status === "idle" || status === "checking") && (appVersion ? t("updates.current", { version: appVersion }) : t("updates.readingVersion"))}
           </p>
         </div>
 
@@ -1605,14 +1659,14 @@ function UpdateChecker() {
               ].join(" ")}
             >
               <RefreshCw size={13} strokeWidth={2} />
-              Check
+              {t("updates.check")}
             </button>
           )}
 
           {status === "checking" && (
             <span className="flex items-center gap-1.5 px-3 py-1.5 text-[length:var(--text-sm)] font-medium text-text-muted">
               <RefreshCw size={13} strokeWidth={2} className="motion-safe:animate-spin" />
-              Checking...
+              {t("updates.checking")}
             </span>
           )}
 
@@ -1637,7 +1691,7 @@ function UpdateChecker() {
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               ].join(" ")}
             >
-              Restart Now
+              {t("updates.restartNow")}
             </button>
           )}
         </div>

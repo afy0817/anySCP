@@ -41,7 +41,8 @@ export function AppShell() {
 
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
   const setEditingHostId = useUiStore((s) => s.setEditingHostId);
-  // Auto-open hosts tab if active tab gets removed
+  // Auto-open hosts tab if active tab gets removed. The stored label is a
+  // stable English id; UnifiedTabBar shows the translated page name.
   useEffect(() => {
     if (!activeTabId || !allTabs.has(activeTabId)) {
       useTabStore.getState().openPageTab("hosts", "Hosts");

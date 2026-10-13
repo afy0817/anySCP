@@ -1,0 +1,63 @@
+{
+  "pages": {
+    "hosts": "Hosts",
+    "snippets": "Snippets",
+    "portForwarding": "Tunnels",
+    "history": "History",
+    "settings": "Settings",
+    "transfers": "Transfers"
+  },
+  "tabBar": {
+    "openSessions": "Open sessions",
+    "scrollLeft": "Scroll tabs left",
+    "scrollRight": "Scroll tabs right",
+    "titleWithPanes": "{{label}} ({{panes}} panes)",
+    "zoomedPane": "Zoomed pane",
+    "closeTab": "Close {{label}}",
+    "snippetsTitle": "Snippets ({{shortcut}})",
+    "openSnippetPalette": "Open snippet palette",
+    "snippets": "Snippets"
+  },
+  "statusBar": {
+    "status": {
+      "Connecting": "Connecting",
+      "Connected": "Connected",
+      "Disconnecting": "Disconnecting",
+      "Disconnected": "Disconnected",
+      "Error": "Error"
+    },
+    "sessionCount_one": "{{count}} session",
+    "sessionCount_other": "{{count}} sessions",
+    "noActiveSession": "No active session"
+  },
+  "sidebar": {
+    "mainNavigation": "Main navigation",
+    "collapse": "Collapse",
+    "expand": "Expand"
+  },
+  "updateDialog": {
+    "title": "Update available",
+    "skipVersion": "Skip this version",
+    "later": "Later",
+    "install": "Install",
+    "available": "anySCP <version>v{{version}}</version> is available.",
+    "availableWithCurrent": "anySCP <version>v{{version}}</version> is available<current> — you have v{{current}}</current>.",
+    "viewChangelog": "View changelog on GitHub"
+  },
+  "confirmDanger": {
+    "confirm": "Confirm",
+    "deleting": "Deleting…"
+  },
+  "contextMenu": {
+    "label": "Context menu"
+  },
+  "select": {
+    "placeholder": "Select..."
+  },
+  "toaster": {
+    "dismiss": "Dismiss"
+  },
+  "s3Providers": {
+    "custom": "Custom S3-Compatible"
+  }
+}

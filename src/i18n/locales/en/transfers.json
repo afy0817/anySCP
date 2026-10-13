@@ -1,0 +1,44 @@
+{
+  "title": "Transfers",
+  "summary": {
+    "active": "{{count}} active",
+    "queued": "{{count}} queued",
+    "done": "{{count}} done"
+  },
+  "page": {
+    "subtitle": "Active, queued, and completed file transfers across all sessions",
+    "clearCompleted": "Clear completed"
+  },
+  "popover": {
+    "clearCompletedLabel": "Clear completed transfers",
+    "clear": "Clear",
+    "openInTab": "Open in a tab",
+    "openInTabLabel": "Open transfers in a tab",
+    "closeLabel": "Close transfers"
+  },
+  "list": {
+    "empty": "No transfers",
+    "emptyHint": "Drag files onto the explorer to upload",
+    "label": "Transfer items"
+  },
+  "row": {
+    "status": {
+      "queued": "Queued",
+      "done": "Done",
+      "cancelled": "Cancelled",
+      "failed": "Failed"
+    },
+    "progress": {
+      "upload": "{{name}} upload progress",
+      "download": "{{name}} download progress"
+    },
+    "files": "{{done}}/{{total}} files",
+    "retryTitle": "Retry transfer",
+    "retryLabel": "Retry {{name}}",
+    "cancelTitle": "Cancel transfer",
+    "cancelLabel": "Cancel {{name}}",
+    "dismissTitle": "Dismiss",
+    "dismissLabel": "Dismiss {{name}}",
+    "calculating": "Calculating..."
+  }
+}

@@ -5,11 +5,13 @@
 // swallowed these entirely, so launch failures looked like "nothing happened"
 // (issues #12, #45, #56). This pulls out a message worth showing in a toast.
 
+import i18n from "../i18n";
+
 export function editorLaunchErrorMessage(err: unknown): string {
   if (err && typeof err === "object" && "message" in err) {
     const msg = String((err as { message: unknown }).message).trim();
     if (msg) return msg;
   }
   if (typeof err === "string" && err.trim()) return err;
-  return "Couldn't open the editor. Configure one in Settings → Editors.";
+  return i18n.t("core:editor.openFailed");
 }

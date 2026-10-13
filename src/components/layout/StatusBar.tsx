@@ -1,7 +1,19 @@
 import { useSessionStore } from "../../stores/session-store";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import type { ConnectionStatus } from "../../types";
+
+// Status values stay as-is for logic; only their display is translated.
+const STATUS_LABEL_KEYS = {
+  Connecting: "statusBar.status.Connecting",
+  Connected: "statusBar.status.Connected",
+  Disconnecting: "statusBar.status.Disconnecting",
+  Disconnected: "statusBar.status.Disconnected",
+  Error: "statusBar.status.Error",
+} as const satisfies Record<ConnectionStatus, string>;
 
 export function StatusBar() {
+  const { t } = useTranslation("app");
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
   const sessions = useSessionStore((s) => s.sessions);
   const sessionCount = sessions.size;
@@ -52,7 +64,7 @@ export function StatusBar() {
             </span>
           </span>
           <span className="mx-2 w-px h-3 bg-border" />
-          <span>{activeSession.status}</span>
+          <span>{t(STATUS_LABEL_KEYS[activeSession.status])}</span>
           {elapsed && (
             <>
               <span className="mx-2 w-px h-3 bg-border" />
@@ -61,11 +73,11 @@ export function StatusBar() {
           )}
           <span className="flex-1" />
           <span className="font-mono text-text-muted tabular-nums">
-            {sessionCount} session{sessionCount !== 1 ? "s" : ""}
+            {t("statusBar.sessionCount", { count: sessionCount })}
           </span>
         </>
       ) : (
-        <span className="text-text-muted">No active session</span>
+        <span className="text-text-muted">{t("statusBar.noActiveSession")}</span>
       )}
     </div>
   );

@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Loader2, AlertCircle, X } from "lucide-react";
 import { ModalBackdrop } from "../shared/ModalBackdrop";
 
@@ -14,6 +15,7 @@ interface ConnectionDialogProps {
 }
 
 export function ConnectionDialog({ label, error, onClose, onRetry, onCancel }: ConnectionDialogProps) {
+  const { t } = useTranslation(["dashboard", "common"]);
   // While connecting, Escape cancels the attempt; in the error state it closes.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -41,7 +43,7 @@ export function ConnectionDialog({ label, error, onClose, onRetry, onCancel }: C
               </div>
               <div className="flex-1 min-w-0">
                 <h2 className="text-[length:var(--text-sm)] font-semibold text-text-primary">
-                  Connection Failed
+                  {t("connectionDialog.failedTitle")}
                 </h2>
                 <p className="text-[length:var(--text-xs)] text-text-muted mt-0.5">
                   {label}
@@ -49,7 +51,7 @@ export function ConnectionDialog({ label, error, onClose, onRetry, onCancel }: C
               </div>
               <button
                 onClick={onClose}
-                aria-label="Close"
+                aria-label={t("common:actions.close")}
                 className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-bg-subtle transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring shrink-0"
               >
                 <X size={15} strokeWidth={2} />
@@ -67,14 +69,14 @@ export function ConnectionDialog({ label, error, onClose, onRetry, onCancel }: C
                 onClick={onClose}
                 className="px-4 py-2 text-[length:var(--text-sm)] text-text-secondary hover:text-text-primary rounded-lg transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Close
+                {t("common:actions.close")}
               </button>
               {onRetry && (
                 <button
                   onClick={onRetry}
                   className="px-4 py-2 text-[length:var(--text-sm)] font-medium text-text-inverse bg-accent hover:bg-accent-hover rounded-lg transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                  Retry
+                  {t("common:actions.retry")}
                 </button>
               )}
             </div>
@@ -85,7 +87,7 @@ export function ConnectionDialog({ label, error, onClose, onRetry, onCancel }: C
             <Loader2 size={26} strokeWidth={2} className="text-accent motion-safe:animate-spin" />
             <div className="text-center">
               <p className="text-[length:var(--text-sm)] font-medium text-text-primary">
-                Connecting...
+                {t("connectionDialog.connecting")}
               </p>
               <p className="text-[length:var(--text-xs)] text-text-muted mt-1">
                 {label}
@@ -96,7 +98,7 @@ export function ConnectionDialog({ label, error, onClose, onRetry, onCancel }: C
                 onClick={onCancel}
                 className="mt-1 px-4 py-2 text-[length:var(--text-sm)] text-text-secondary hover:text-text-primary rounded-lg transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                Cancel
+                {t("common:actions.cancel")}
               </button>
             )}
           </div>

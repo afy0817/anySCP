@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AlertCircle } from "lucide-react";
+import { useTranslation } from "react-i18next";
+import i18n from "../../i18n";
 import { useSftpStore } from "../../stores/sftp-store";
 import { useTabStore } from "../../stores/tab-store";
 import type { SftpEntry } from "../../types";
@@ -30,6 +32,7 @@ interface ExplorerViewProps {
 }
 
 export function ExplorerView({ sessionId, transport = "sftp", isActive = true }: ExplorerViewProps) {
+  const { t } = useTranslation("explorer");
   const session = useSftpStore((s) => s.sessions.get(sessionId));
   const setEntries = useSftpStore((s) => s.setEntries);
   const setLoading = useSftpStore((s) => s.setLoading);
@@ -70,10 +73,10 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
       try {
         await explorerInvoke(transport, "enqueue_upload", sessionId, { localPaths, remoteDir });
       } catch (err) {
-        toast.error(`Upload failed: ${errorMessage(err)}`);
+        toast.error(t("view.uploadFailed", { error: errorMessage(err) }));
       }
     },
-    [sessionId, transport],
+    [sessionId, transport, t],
   );
 
   const confirmOverwrite = useCallback(() => {
@@ -251,10 +254,10 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
         const entries = await explorerInvoke<SftpEntry[]>(transport, "list_dir", sessionId, { path });
         setEntries(sessionId, path, entries);
       } catch (err: unknown) {
-        setError(sessionId, errorMessage(err, "Failed to list directory"));
+        setError(sessionId, errorMessage(err, t("view.listFailed")));
       }
     },
-    [sessionId, transport, setLoading, setEntries, setError],
+    [sessionId, transport, setLoading, setEntries, setError, t],
   );
 
   // ─── Sudo toggle (SFTP only) ──────────────────────────────────────────────
@@ -291,14 +294,14 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
       // after a successful open), so the view keeps working.
       setError(
         sessionId,
-        errorMessage(err, `Failed to ${newSudoMode ? "enable" : "disable"} sudo mode`),
+        errorMessage(err, newSudoMode ? t("view.enableSudoFailed") : t("view.disableSudoFailed")),
       );
     } finally {
       // On success the view remounts (tab id changes) and this is a no-op;
       // on failure or a closed tab it re-enables the button.
       setTogglingSudo(false);
     }
-  }, [transport, togglingSudo, sudoMode, sessionId, sshSessionId, swapSession, replaceTabId, setError]);
+  }, [transport, togglingSudo, sudoMode, sessionId, sshSessionId, swapSession, replaceTabId, setError, t]);
 
   // On mount: reload the preserved directory (e.g. after a sudo-toggle
   // remount), otherwise land in the host's configured start directory and
@@ -371,7 +374,7 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
         const { open } = await import("@tauri-apps/plugin-dialog");
         const localDir = await open({
           directory: true,
-          title: `Download "${entry.name}" to…`,
+          title: t("view.downloadDirTitle", { name: entry.name }),
         }) as string | null;
         if (!localDir) return;
 
@@ -383,7 +386,7 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
         const { save } = await import("@tauri-apps/plugin-dialog");
         const savePath = await save({
           defaultPath: entry.name,
-          title: `Save "${entry.name}" as…`,
+          title: t("view.saveAsTitle", { name: entry.name }),
         });
         if (!savePath) return;
 
@@ -397,7 +400,7 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
     } catch (err) {
       console.error("Download failed:", err);
     }
-  }, [sessionId, transport]);
+  }, [sessionId, transport, t]);
 
   // Download several selected entries at once. Unlike the single-file path
   // (which lets you rename via a Save dialog), this asks for a destination
@@ -410,7 +413,7 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
       const { open } = await import("@tauri-apps/plugin-dialog");
       const localDir = await open({
         directory: true,
-        title: `Download ${entries.length} items to…`,
+        title: t("view.downloadManyTitle", { count: entries.length }),
       }) as string | null;
       if (!localDir) return;
 
@@ -421,7 +424,7 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
     } catch (err) {
       console.error("Download failed:", err);
     }
-  }, [sessionId, transport]);
+  }, [sessionId, transport, t]);
 
   // ─── Drag-out (Explorer → OS desktop/Finder) ──────────────────────────────
   //
@@ -449,7 +452,7 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
       // the drag begins/ends.
       let prepToast: string | null = null;
       const prepTimer = setTimeout(() => {
-        prepToast = toast.info("Preparing download…");
+        prepToast = toast.info(t("view.preparingDownload"));
       }, 400);
       try {
         const remotePaths = entries.map((en) => en.id);
@@ -463,17 +466,17 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
         // signal; the backend's drop result is the only success hook, so only
         // confirm when the drag actually dropped (not when it was cancelled).
         if (dropped && count > 0) {
-          toast.success(`Downloaded ${count} ${count === 1 ? "item" : "items"}`);
+          toast.success(t("view.downloaded", { count }));
         }
       } catch (err) {
-        toast.error(`Download failed: ${errorMessage(err)}`);
+        toast.error(t("view.downloadFailed", { error: errorMessage(err) }));
       } finally {
         clearTimeout(prepTimer);
         if (prepToast) toast.dismiss(prepToast);
         isDraggingOut.current = false;
       }
     })();
-  }, [sessionId, transport]);
+  }, [sessionId, transport, t]);
 
   // ─── Upload (dialog) ─────────────────────────────────────────────────────
 
@@ -486,7 +489,7 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
       // the document base URL, threw, and silently fell back to a no-op
       // `window.prompt` in the macOS webview — see issue #69.)
       const { open } = await import("@tauri-apps/plugin-dialog");
-      const selection = await open({ multiple: true, title: "Upload file" });
+      const selection = await open({ multiple: true, title: t("view.uploadFileTitle") });
       if (!selection) return;
       const localPaths = Array.isArray(selection) ? selection : [selection];
       if (localPaths.length === 0) return;
@@ -501,9 +504,9 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
     } catch (err) {
       // Transfer errors surface in the overlay, but a rejected enqueue (e.g.
       // unreadable local path) never creates a job there — toast it.
-      toast.error(`Upload failed: ${errorMessage(err)}`);
+      toast.error(t("view.uploadFailed", { error: errorMessage(err) }));
     }
-  }, [sessionId, transport, session]);
+  }, [sessionId, transport, session, t]);
 
   // Upload one or more whole folders. The native picker is folder-only
   // (`directory: true`), returning the selected folder paths themselves — not
@@ -513,7 +516,7 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
     if (!session) return;
     try {
       const { open } = await import("@tauri-apps/plugin-dialog");
-      const selection = await open({ directory: true, multiple: true, title: "Upload folder" });
+      const selection = await open({ directory: true, multiple: true, title: t("view.uploadFolderTitle") });
       if (!selection) return;
       const localPaths = Array.isArray(selection) ? selection : [selection];
       if (localPaths.length === 0) return;
@@ -525,9 +528,9 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
     } catch (err) {
       // Transfer errors surface in the overlay, but a rejected enqueue (e.g.
       // unreadable picked folder) never creates a job there — toast it.
-      toast.error(`Upload failed: ${errorMessage(err)}`);
+      toast.error(t("view.uploadFailed", { error: errorMessage(err) }));
     }
-  }, [sessionId, transport, session]);
+  }, [sessionId, transport, session, t]);
 
   // ─── New folder/file (inline) ─────────────────────────────────────────────
 
@@ -671,11 +674,11 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
       }
       await loadDirectory(session.currentPath);
     } catch (err) {
-      setError(sessionId, err instanceof Error ? err.message : "Paste failed");
+      setError(sessionId, err instanceof Error ? err.message : t("view.pasteFailed"));
     } finally {
       setBusy(false);
     }
-  }, [sessionId, transport, session, loadDirectory, setError]);
+  }, [sessionId, transport, session, loadDirectory, setError, t]);
 
   const handleMoveEntries = useCallback(async (sourceIds: string[], targetDir: string) => {
     setBusy(true);
@@ -683,11 +686,11 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
       await explorerInvoke(transport, "move_entries", sessionId, { sourcePaths: sourceIds, targetDir });
       if (session) await loadDirectory(session.currentPath);
     } catch (err) {
-      setError(sessionId, err instanceof Error ? err.message : "Move failed");
+      setError(sessionId, err instanceof Error ? err.message : t("view.moveFailed"));
     } finally {
       setBusy(false);
     }
-  }, [sessionId, transport, session, loadDirectory, setError]);
+  }, [sessionId, transport, session, loadDirectory, setError, t]);
 
   const handleCopyEntries = useCallback(async (sourceIds: string[], targetDir: string) => {
     setBusy(true);
@@ -695,11 +698,11 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
       await explorerInvoke(transport, "copy_entries", sessionId, { sourcePaths: sourceIds, targetDir });
       if (session) await loadDirectory(session.currentPath);
     } catch (err) {
-      setError(sessionId, err instanceof Error ? err.message : "Copy failed");
+      setError(sessionId, err instanceof Error ? err.message : t("view.copyFailed"));
     } finally {
       setBusy(false);
     }
-  }, [sessionId, transport, session, loadDirectory, setError]);
+  }, [sessionId, transport, session, loadDirectory, setError, t]);
 
   // ─── Clipboard adapter ───────────────────────────────────────────────────
   // SftpClipboard uses SftpEntry with `path`, ExplorerClipboard uses ExplorerEntry with `id`.
@@ -853,11 +856,13 @@ interface PendingDrop {
 }
 
 /** Extract a human-readable message from a Tauri/SftpError rejection. */
-function errorMessage(err: unknown, fallback = "Unexpected error"): string {
+function errorMessage(err: unknown, fallback?: string): string {
   if (err && typeof err === "object" && "message" in err) {
     return String((err as { message: string }).message);
   }
-  return typeof err === "string" ? err : fallback;
+  if (typeof err === "string") return err;
+  // Resolved at call time so the fallback follows the current UI language.
+  return fallback ?? i18n.t("explorer:view.unexpectedError");
 }
 
 /** Path segment of our drag-out staging dir (temp_dir/anyscp-dragout/<uuid>). */

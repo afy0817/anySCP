@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import i18n, { applyLanguage, DEFAULT_LANGUAGE, normalizeLanguage, type Language } from "../i18n";
 
 export type CursorStyle = "block" | "bar" | "underline";
 export type ThemeMode = "dark" | "light";
@@ -24,6 +25,9 @@ export interface EditorConfig {
 }
 
 interface SettingsState {
+  // Language
+  language: Language;
+
   // Appearance
   themeMode: ThemeMode;
   accentHue: number;
@@ -61,6 +65,7 @@ interface SettingsState {
   loaded: boolean;
 
   // Actions
+  setLanguage: (language: Language) => void;
   setThemeMode: (mode: ThemeMode) => void;
   setAccentHue: (hue: number) => void;
   setAccentCustom: (custom: AccentCustom | null) => void;
@@ -211,12 +216,20 @@ let accentPersistTimer: ReturnType<typeof setTimeout> | undefined;
 
 export const useSettingsStore = create<SettingsState>((set) => ({
   ...DEFAULTS,
+  // Seeded from i18n, which already picked the cached choice or the OS language.
+  language: normalizeLanguage(i18n.language) ?? DEFAULT_LANGUAGE,
   themeMode: initialThemeMode(),
   accentHue: initialAccentHue(),
   accentCustom: initialAccentCustom(),
   interfaceFont: initialInterfaceFont(),
   interfaceMonoFont: initialInterfaceMonoFont(),
   loaded: false,
+
+  setLanguage: (language) => {
+    set({ language });
+    persist("app_language", language);
+    applyLanguage(language);
+  },
 
   setThemeMode: (mode) => {
     set({ themeMode: mode });
@@ -355,6 +368,14 @@ export const useSettingsStore = create<SettingsState>((set) => ({
       let editorsSeeded = false;
       for (const [key, value] of pairs) {
         switch (key) {
+          case "app_language": {
+            const language = normalizeLanguage(value);
+            if (language) {
+              updates.language = language;
+              applyLanguage(language);
+            }
+            break;
+          }
           case "app_theme": updates.themeMode = value === "light" ? "light" : DEFAULTS.themeMode; break;
           case "app_accent_hue": updates.accentHue = Number(value) || DEFAULTS.accentHue; break;
           case "app_accent_custom": {

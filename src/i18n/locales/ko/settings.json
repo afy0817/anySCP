@@ -1,0 +1,247 @@
+{
+  "nav": {
+    "ariaLabel": "설정 섹션",
+    "heading": "설정"
+  },
+  "sections": {
+    "appearance": "모양",
+    "terminal": "터미널",
+    "explorer": "파일 탐색기",
+    "transfers": "전송",
+    "editors": "편집기",
+    "data": "데이터",
+    "about": "정보 및 업데이트"
+  },
+  "sectionDescriptions": {
+    "appearance": "테마와 인터페이스 모양",
+    "terminal": "글꼴, 커서, 스크롤백 기록",
+    "explorer": "파일 탐색기의 동작 방식",
+    "transfers": "파일 전송 방식",
+    "editors": "파일 탐색기의 “편집” / “다음으로 열기”에서 쓰는 편집기",
+    "data": "데이터 백업, 복원, 초기화",
+    "about": "앱 정보, 링크, 업데이트"
+  },
+  "fonts": {
+    "geistDefault": "Geist (기본값)",
+    "systemUi": "시스템 UI",
+    "jetBrainsMonoDefault": "JetBrains Mono (기본값)",
+    "jetBrainsNerdFont": "JetBrains Nerd Font (아이콘)",
+    "systemMonospace": "시스템 고정폭",
+    "current": "현재 글꼴"
+  },
+  "theme": {
+    "group": "테마",
+    "colorTheme": {
+      "label": "색상 테마",
+      "description": "어두운 다크 테마와 부드러운 회색 톤의 라이트 테마 중에서 골라요",
+      "dark": "다크",
+      "light": "라이트"
+    },
+    "accent": {
+      "label": "강조 색상",
+      "description": "버튼, 링크, 활성 상태에 쓰여요",
+      "colors": {
+        "blue": "파랑",
+        "indigo": "남색",
+        "violet": "보라",
+        "pink": "분홍",
+        "red": "빨강",
+        "orange": "주황",
+        "green": "초록",
+        "teal": "청록"
+      },
+      "custom": "사용자 지정",
+      "customColor": "사용자 지정 색상",
+      "customDialog": "사용자 지정 강조 색상",
+      "lightness": "밝기",
+      "saturation": "채도",
+      "hue": "강조 색조"
+    }
+  },
+  "interface": {
+    "group": "인터페이스",
+    "language": {
+      "label": "언어",
+      "description": "메뉴, 라벨, 메시지에 쓰는 언어"
+    },
+    "font": {
+      "label": "인터페이스 글꼴",
+      "description": "메뉴, 라벨, 패널에 쓰는 글꼴"
+    },
+    "monoFont": {
+      "label": "인터페이스 고정폭 글꼴",
+      "description": "경로, 권한, 코드에 쓰는 글꼴 (터미널 제외)"
+    }
+  },
+  "terminal": {
+    "font": {
+      "group": "글꼴",
+      "family": {
+        "label": "글꼴 패밀리",
+        "description": "터미널에서 쓰는 고정폭 글꼴"
+      },
+      "size": {
+        "label": "글꼴 크기",
+        "description": "픽셀 단위 크기 (8–42)"
+      },
+      "lineHeight": {
+        "label": "줄 높이",
+        "description": "줄 사이 간격 (1.0–2.0)"
+      }
+    },
+    "cursor": {
+      "group": "커서",
+      "style": {
+        "label": "커서 모양",
+        "description": "터미널 커서의 모양",
+        "bar": "막대",
+        "block": "블록",
+        "underline": "밑줄"
+      },
+      "blink": {
+        "label": "커서 깜빡임",
+        "description": "커서를 깜빡이게 해요"
+      }
+    },
+    "clipboard": {
+      "group": "클립보드",
+      "copyOnSelect": {
+        "label": "선택 시 복사",
+        "description": "선택한 텍스트를 자동으로 클립보드에 복사해요"
+      },
+      "pasteButton": {
+        "label": "붙여넣기 버튼",
+        "description": "클립보드 내용을 터미널에 붙여넣을 마우스 버튼",
+        "off": "끄기",
+        "right": "오른쪽 클릭",
+        "middle": "가운데 클릭"
+      }
+    },
+    "history": {
+      "group": "기록",
+      "scrollback": {
+        "label": "스크롤백 버퍼",
+        "description": "기록에 보관할 줄 수 (500–100,000)"
+      },
+      "note": "변경 사항은 열려 있는 터미널에 바로 적용돼요"
+    }
+  },
+  "explorer": {
+    "doubleClick": {
+      "label": "파일 더블클릭",
+      "description": "파일 탐색기에서 파일을 더블클릭했을 때의 동작",
+      "download": "다운로드",
+      "open": "편집기에서 열기"
+    },
+    "note": "설정된 편집기가 없으면 열지 않고 다운로드해요 (편집기 섹션 참고)"
+  },
+  "transfers": {
+    "concurrency": {
+      "label": "동시 전송 수",
+      "description": "동시에 진행할 최대 파일 전송 수 (1–10)"
+    }
+  },
+  "data": {
+    "backupGroup": "백업",
+    "export": {
+      "label": "암호화된 백업 내보내기",
+      "description": "모든 호스트, 그룹, 스니펫, 설정, 저장된 자격 증명을 비밀번호로 보호된 파일 하나에 저장해요",
+      "button": "내보내기…"
+    },
+    "import": {
+      "label": "백업 가져오기",
+      "description": "백업 파일에서 복원해요. 현재 데이터를 모두 대체하고 anySCP를 다시 시작해요.",
+      "button": "가져오기…"
+    },
+    "dangerGroup": "위험 구역",
+    "clear": {
+      "label": "모든 데이터 지우기",
+      "description": "저장된 모든 호스트, 그룹, 연결 기록, 스니펫, 포트 포워딩 규칙, S3 연결을 저장된 자격 증명 및 모든 앱 설정과 함께 영구적으로 삭제해요. anySCP는 처음 실행한 상태로 다시 시작해요. 되돌릴 수 없어요.",
+      "button": "모든 데이터 지우기…"
+    },
+    "fileDialog": {
+      "selectTitle": "anySCP 백업 선택",
+      "saveTitle": "anySCP 백업 저장",
+      "filterName": "anySCP 백업"
+    }
+  },
+  "backupModal": {
+    "exportTitle": "암호화된 백업 내보내기",
+    "importTitle": "백업 가져오기",
+    "exporting": "내보내는 중…",
+    "chooseAndExport": "파일 선택 후 내보내기",
+    "restoring": "복원 중…",
+    "importAndRestart": "가져온 후 다시 시작",
+    "exportIntro": "백업을 암호화할 비밀번호를 정해 주세요. 복원할 때 꼭 필요하며, 비밀번호 없이는 데이터를 복구할 방법이 없어요.",
+    "importIntro": "이 백업을 만들 때 쓴 비밀번호를 입력해 주세요. 가져오면 현재 데이터를 모두 대체하고 anySCP를 다시 시작해요.",
+    "password": "비밀번호",
+    "passwordMinPlaceholder": "{{min}}자 이상",
+    "passwordPlaceholder": "백업 비밀번호",
+    "confirmPassword": "비밀번호 확인",
+    "confirmPlaceholder": "비밀번호 다시 입력",
+    "mismatch": "비밀번호가 일치하지 않아요",
+    "saved": "암호화된 백업을 저장했어요",
+    "exportFailed": "백업을 내보내지 못했어요",
+    "importFailed": "백업을 가져오지 못했어요"
+  },
+  "resetModal": {
+    "title": "모든 데이터를 지울까요?",
+    "clearing": "지우는 중…",
+    "submit": "모든 데이터 지우기",
+    "body": "저장된 호스트, 그룹, 기록, 스니펫, 포트 포워딩 규칙, S3 연결, 저장된 자격 증명, 설정이 <strong>전부</strong> 영구적으로 삭제돼요. anySCP는 초기 상태로 다시 시작해요. 되돌릴 수 없어요.",
+    "typeToConfirm": "확인하려면 <code>{{word}}</code>를 입력해 주세요",
+    "failed": "데이터를 지우지 못했어요. 다시 시도해 주세요."
+  },
+  "editors": {
+    "group": "편집기",
+    "empty": "설정된 편집기가 없어요. 설치된 편집기를 검색하거나 직접 추가해 주세요.",
+    "scanning": "검색 중…",
+    "scan": "편집기 검색",
+    "addCustom": "사용자 지정 편집기 추가",
+    "hint": "별표한 편집기는 “편집”에 쓰이고, 나머지는 “다음으로 열기”에 나타나요",
+    "foundGroup": "이 컴퓨터에서 찾은 편집기",
+    "noneFound": "이 컴퓨터에서 편집기를 찾지 못했어요",
+    "allAdded": "찾은 편집기가 모두 이미 추가되어 있어요",
+    "scanFailed": "편집기를 검색하지 못했어요",
+    "defaultBadge": "기본",
+    "defaultEditor": "기본 편집기",
+    "setDefault": "기본으로 설정",
+    "removeEditor": "{{name}} 제거"
+  },
+  "addEditor": {
+    "title": "편집기 추가",
+    "name": "이름",
+    "namePlaceholder": "예: Sublime Text",
+    "path": "실행 파일 경로",
+    "pickTitle": "편집기 실행 파일 선택",
+    "args": "인수",
+    "argsHint": "파일 경로가 들어갈 자리에 <code>{path}</code>를 넣어 주세요. 생략하면 맨 끝에 붙어요.",
+    "submit": "편집기 추가"
+  },
+  "about": {
+    "group": "정보",
+    "tagline": "SSH, SFTP, S3를 위한 모던 데스크톱 클라이언트",
+    "repository": {
+      "label": "저장소",
+      "description": "GitHub의 소스 코드, 이슈, 릴리스"
+    }
+  },
+  "updates": {
+    "group": "업데이트",
+    "auto": {
+      "label": "자동 업데이트",
+      "description": "백그라운드에서 업데이트를 내려받아 설치하고, 다음 실행 때 적용해요"
+    },
+    "appVersion": "앱 버전",
+    "upToDate": "최신 버전을 쓰고 있어요",
+    "available": "v{{version}} 업데이트가 있어요",
+    "downloading": "업데이트 다운로드 중… {{progress}}%",
+    "ready": "업데이트를 내려받았어요. 다시 시작하면 적용돼요.",
+    "error": "문제가 발생했어요",
+    "current": "현재 버전: v{{version}}",
+    "readingVersion": "버전 확인 중…",
+    "check": "업데이트 확인",
+    "checking": "확인 중…",
+    "restartNow": "지금 다시 시작"
+  }
+}

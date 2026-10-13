@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Braces } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 import type { Snippet, SnippetFolder, SnippetVariable } from "../../types";
 import { extractVariables, parseVariables } from "../../utils/snippet-resolve";
 import { CustomSelect } from "../shared/CustomSelect";
@@ -57,6 +58,7 @@ function OptionsInput({
   disabled?: boolean;
   className: string;
 }) {
+  const { t } = useTranslation("snippets");
   const [raw, setRaw] = useState(value ? value.join(", ") : "");
 
   // Sync from parent when value changes externally (e.g., on modal open)
@@ -78,7 +80,7 @@ function OptionsInput({
       value={raw}
       onChange={(e) => setRaw(e.target.value)}
       onBlur={commitValue}
-      placeholder="e.g., start, stop, restart, status"
+      placeholder={t("editModal.variable.optionsPlaceholder")}
       disabled={disabled}
       className={className}
     />
@@ -94,6 +96,7 @@ interface VariableRowProps {
 }
 
 function VariableRow({ variable, onChange, disabled }: VariableRowProps) {
+  const { t } = useTranslation("snippets");
   const rowInputClass = [
     "w-full rounded-md bg-bg-base border border-border px-2.5 py-1.5",
     "text-[length:var(--text-xs)] text-text-primary placeholder:text-text-muted",
@@ -118,30 +121,30 @@ function VariableRow({ variable, onChange, disabled }: VariableRowProps) {
             disabled={disabled}
             className="w-3.5 h-3.5 rounded accent-accent"
           />
-          <span className="text-[11px] text-text-muted">Required</span>
+          <span className="text-[11px] text-text-muted">{t("editModal.variable.required")}</span>
         </label>
       </div>
 
       {/* Fields in a 2-column grid */}
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <span className={rowLabelClass}>Label</span>
+          <span className={rowLabelClass}>{t("editModal.variable.label")}</span>
           <input
             type="text"
             value={variable.label ?? ""}
             onChange={(e) => onChange({ ...variable, label: e.target.value || null })}
-            placeholder="Display label"
+            placeholder={t("editModal.variable.labelPlaceholder")}
             disabled={disabled}
             className={rowInputClass}
           />
         </div>
         <div>
-          <span className={rowLabelClass}>Default</span>
+          <span className={rowLabelClass}>{t("editModal.variable.default")}</span>
           <input
             type="text"
             value={variable.default_value ?? ""}
             onChange={(e) => onChange({ ...variable, default_value: e.target.value || null })}
-            placeholder="Default value"
+            placeholder={t("editModal.variable.defaultPlaceholder")}
             disabled={disabled}
             className={rowInputClass}
           />
@@ -150,7 +153,7 @@ function VariableRow({ variable, onChange, disabled }: VariableRowProps) {
 
       {/* Options — full width */}
       <div>
-        <span className={rowLabelClass}>Options (comma-separated)</span>
+        <span className={rowLabelClass}>{t("editModal.variable.options")}</span>
         <OptionsInput
           value={variable.options}
           onChange={(opts) => onChange({ ...variable, options: opts })}
@@ -172,6 +175,7 @@ export function SnippetEditModal({
   onSave,
   onSaveAndExecute: _onSaveAndExecute,
 }: SnippetEditModalProps) {
+  const { t } = useTranslation(["snippets", "common"]);
   const [form, setForm] = useState<Snippet>(blankSnippet());
   const [variableMeta, setVariableMeta] = useState<SnippetVariable[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -224,19 +228,19 @@ export function SnippetEditModal({
   const handleSave = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-      if (!form.name.trim()) { setError("Name is required"); return; }
-      if (!form.command.trim()) { setError("Command is required"); return; }
+      if (!form.name.trim()) { setError(t("editModal.errors.nameRequired")); return; }
+      if (!form.command.trim()) { setError(t("editModal.errors.commandRequired")); return; }
       setSaving(true);
       setError(null);
       try {
         await onSave(buildSnippet());
       } catch (err: unknown) {
-        setError(extractError(err, "Failed to save snippet"));
+        setError(extractError(err, t("editModal.errors.saveFailed")));
         setSaving(false);
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [form, variableMeta, onSave],
+    [form, variableMeta, onSave, t],
   );
 
 
@@ -255,7 +259,7 @@ export function SnippetEditModal({
     <ModalShell
       open={open}
       onClose={onClose}
-      title={isEdit ? "Edit Snippet" : "New Snippet"}
+      title={isEdit ? t("editModal.titleEdit") : t("editModal.titleNew")}
       icon={Braces}
       maxWidth="xl"
       scrollable
@@ -264,7 +268,7 @@ export function SnippetEditModal({
       footer={
         <>
           <button type="button" onClick={onClose} disabled={saving} className={BTN_GHOST}>
-            Cancel
+            {t("common:actions.cancel")}
           </button>
           <button
             form="snippet-edit-form"
@@ -273,7 +277,7 @@ export function SnippetEditModal({
             disabled={saving || !form.name.trim() || !form.command.trim()}
             className={BTN_PRIMARY}
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? t("editModal.saving") : t("common:actions.save")}
           </button>
         </>
       }
@@ -282,7 +286,7 @@ export function SnippetEditModal({
           {/* Name */}
           <div>
             <label className={labelClass}>
-              Name <span className="text-status-error">*</span>
+              {t("editModal.fields.name")} <span className="text-status-error">*</span>
             </label>
             <input
               ref={nameRef}
@@ -290,7 +294,7 @@ export function SnippetEditModal({
               type="text"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="e.g., Restart Nginx"
+              placeholder={t("editModal.fields.namePlaceholder")}
               disabled={saving}
               required
               className={inputClass}
@@ -300,13 +304,13 @@ export function SnippetEditModal({
           {/* Command */}
           <div>
             <label className={labelClass}>
-              Command <span className="text-status-error">*</span>
+              {t("editModal.fields.command")} <span className="text-status-error">*</span>
             </label>
             <textarea
               data-testid="snippet-modal-command"
               value={form.command}
               onChange={(e) => handleCommandChange(e.target.value)}
-              placeholder="e.g., sudo systemctl restart {{service}}"
+              placeholder={t("editModal.fields.commandPlaceholder", { example: "{{service}}" })}
               disabled={saving}
               required
               rows={4}
@@ -316,17 +320,22 @@ export function SnippetEditModal({
               ].join(" ")}
             />
             <p className="mt-1 text-[11px] text-text-muted">
-              Use <span className="font-mono text-accent">{"{{variable_name}}"}</span> syntax to define variables.
+              <Trans
+                t={t}
+                i18nKey="editModal.fields.commandHint"
+                values={{ syntax: "{{variable_name}}" }}
+                components={{ code: <span className="font-mono text-accent" /> }}
+              />
             </p>
           </div>
 
           {/* Description */}
           <div>
-            <label className={labelClass}>Description</label>
+            <label className={labelClass}>{t("editModal.fields.description")}</label>
             <textarea
               value={form.description ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value || null }))}
-              placeholder="Optional — describe what this snippet does"
+              placeholder={t("editModal.fields.descriptionPlaceholder")}
               disabled={saving}
               rows={2}
               className={[inputClass, "resize-y min-h-[3rem]"].join(" ")}
@@ -337,14 +346,14 @@ export function SnippetEditModal({
           <div className="grid grid-cols-2 gap-4">
             {/* Folder */}
             <div>
-              <label className={labelClass}>Folder</label>
+              <label className={labelClass}>{t("editModal.fields.folder")}</label>
               <CustomSelect
                 value={form.folder_id ?? ""}
                 onChange={(v) => setForm((f) => ({ ...f, folder_id: v || null }))}
                 disabled={saving}
-                placeholder="No folder"
+                placeholder={t("editModal.fields.noFolder")}
                 options={[
-                  { value: "", label: "No folder" },
+                  { value: "", label: t("editModal.fields.noFolder") },
                   ...folders.map((folder) => ({
                     value: folder.id,
                     label: folder.name,
@@ -355,7 +364,7 @@ export function SnippetEditModal({
 
             {/* Tags */}
             <div>
-              <label className={labelClass}>Tags</label>
+              <label className={labelClass}>{t("editModal.fields.tags")}</label>
               <input
                 type="text"
                 value={form.tags ?? ""}
@@ -378,10 +387,10 @@ export function SnippetEditModal({
             />
             <div>
               <span className="text-[length:var(--text-sm)] font-medium text-text-secondary group-hover:text-text-primary transition-colors duration-[var(--duration-fast)]">
-                Flag as dangerous
+                {t("editModal.fields.dangerous")}
               </span>
               <p className="text-[length:var(--text-xs)] text-text-muted mt-0.5">
-                Requires confirmation before execution.
+                {t("editModal.fields.dangerousHint")}
               </p>
             </div>
           </label>
@@ -391,18 +400,18 @@ export function SnippetEditModal({
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-[length:var(--text-xs)] font-semibold uppercase tracking-widest text-text-muted">
-                  Variables
+                  {t("editModal.variables.heading")}
                 </span>
                 <span className="text-[11px] text-text-muted bg-bg-subtle border border-border rounded-full px-2 py-0.5">
-                  {variableMeta.length} detected
+                  {t("editModal.variables.detected", { total: variableMeta.length })}
                 </span>
               </div>
 
               {/* Column headers */}
               <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 px-3 mb-1">
-                {["Variable", "Label", "Default", "Options", "Req"].map((h) => (
+                {(["variable", "label", "default", "options", "required"] as const).map((h) => (
                   <span key={h} className="text-[11px] font-medium uppercase tracking-wide text-text-muted">
-                    {h}
+                    {t(`editModal.columns.${h}`)}
                   </span>
                 ))}
               </div>

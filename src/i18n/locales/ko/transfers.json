@@ -1,0 +1,44 @@
+{
+  "title": "전송",
+  "summary": {
+    "active": "진행 중 {{count}}개",
+    "queued": "대기 중 {{count}}개",
+    "done": "완료 {{count}}개"
+  },
+  "page": {
+    "subtitle": "모든 세션의 진행 중·대기 중·완료된 파일 전송을 한곳에서 볼 수 있어요",
+    "clearCompleted": "완료 항목 지우기"
+  },
+  "popover": {
+    "clearCompletedLabel": "완료된 전송 지우기",
+    "clear": "지우기",
+    "openInTab": "탭에서 열기",
+    "openInTabLabel": "전송을 탭에서 열기",
+    "closeLabel": "전송 닫기"
+  },
+  "list": {
+    "empty": "전송 항목이 없어요",
+    "emptyHint": "파일 탐색기로 파일을 끌어다 놓으면 업로드돼요",
+    "label": "전송 항목"
+  },
+  "row": {
+    "status": {
+      "queued": "대기 중",
+      "done": "완료",
+      "cancelled": "취소됨",
+      "failed": "실패"
+    },
+    "progress": {
+      "upload": "{{name}} 업로드 진행률",
+      "download": "{{name}} 다운로드 진행률"
+    },
+    "files": "파일 {{done}}/{{total}}개",
+    "retryTitle": "전송 다시 시도",
+    "retryLabel": "{{name}} 다시 시도",
+    "cancelTitle": "전송 취소",
+    "cancelLabel": "{{name}} 전송 취소",
+    "dismissTitle": "목록에서 제거",
+    "dismissLabel": "{{name}} 목록에서 제거",
+    "calculating": "계산 중…"
+  }
+}

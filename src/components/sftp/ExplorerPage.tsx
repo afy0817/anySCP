@@ -1,4 +1,5 @@
 import { FolderOpen, Cloud } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { ExplorerView } from "./ExplorerView";
 import { S3Browser } from "../s3/S3Browser";
 import { useSftpStore } from "../../stores/sftp-store";
@@ -17,10 +18,11 @@ interface ExplorerPageProps {
 }
 
 export function ExplorerPage({ sftpSessionId, transport = "sftp", s3SessionId, isActive = true }: ExplorerPageProps) {
+  const { t } = useTranslation("explorer");
   const sftpSession = useSftpStore((s) => sftpSessionId ? s.sessions.get(sftpSessionId) : null);
   const s3Session = useS3Store((s) => s3SessionId ? s.sessions.get(s3SessionId) : null);
 
-  const baseLabel = sftpSession?.label ?? s3Session?.label ?? "Explorer";
+  const baseLabel = sftpSession?.label ?? s3Session?.label ?? t("page.fallbackLabel");
   // Surface SCP fallback subtly so the user understands why server-side
   // metadata (timestamps, etc.) may look slightly different.
   const label = sftpSessionId && transport === "scp" ? `${baseLabel} · SCP` : baseLabel;

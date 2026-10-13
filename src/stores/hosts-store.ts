@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import i18n from "../i18n";
 import type { SavedHost, RecentConnection } from "../types";
 
 interface HostsState {
@@ -32,7 +33,7 @@ export const useHostsStore = create<HostsState>((set, get) => ({
       const msg =
         err && typeof err === "object" && "message" in err
           ? String((err as { message: string }).message)
-          : "Failed to load hosts";
+          : i18n.t("core:hosts.loadFailed");
       set({ error: msg });
     } finally {
       set({ loading: false });
@@ -55,7 +56,7 @@ export const useHostsStore = create<HostsState>((set, get) => ({
     const duplicate: SavedHost = {
       ...orig,
       id: crypto.randomUUID(),
-      label: `${orig.label || orig.host} (copy)`,
+      label: i18n.t("core:hosts.copyName", { name: orig.label || orig.host }),
       created_at: now,
       updated_at: now,
       last_connected_at: null,

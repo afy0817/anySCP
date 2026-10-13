@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import i18n from "../i18n";
 import type { HostGroup } from "../types";
 
 interface GroupsState {
@@ -28,7 +29,7 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
       const msg =
         err && typeof err === "object" && "message" in err
           ? String((err as { message: string }).message)
-          : "Failed to load groups";
+          : i18n.t("core:groups.loadFailed");
       set({ error: msg });
     } finally {
       set({ loading: false });
