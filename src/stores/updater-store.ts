@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { useSettingsStore } from "./settings-store";
 import type { Update } from "@tauri-apps/plugin-updater";
+import i18n from "../i18n";
 
 export type UpdaterStatus =
   | "idle"
@@ -27,6 +28,10 @@ interface UpdaterState {
   dismissDialog: () => void;
   skipUpdate: () => void;
 }
+
+// Fork build: the upstream updater would replace this build with the
+// upstream release, so every update path is disabled.
+const UPDATES_DISABLED = true;
 
 const message = (err: unknown, fallback: string) =>
   err instanceof Error ? err.message : fallback;
@@ -96,6 +101,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
   // update and relaunches immediately into the new binary. With it off, surfaces
   // a popup unless the user skipped this exact version.
   checkOnStartup: async () => {
+    if (UPDATES_DISABLED) return;
     if (get().status === "checking" || get().status === "downloading") return;
     set({ status: "checking", error: null });
     try {
@@ -123,7 +129,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
               status: "error",
               error: message(
                 relaunchErr,
-                "Couldn't restart automatically — please reopen the app",
+                i18n.t("core:updater.relaunchFailed"),
               ),
             });
           }
@@ -136,7 +142,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
     } catch (err) {
       set({
         status: "error",
-        error: message(err, "Failed to check for updates"),
+        error: message(err, i18n.t("core:updater.checkFailed")),
       });
     }
   },
@@ -144,6 +150,10 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
   // The Settings "Check" button. Honours the auto-update setting: installs
   // silently when on, otherwise opens the popup.
   checkManually: async () => {
+    if (UPDATES_DISABLED) {
+      set({ status: "error", error: i18n.t("core:updater.disabled") });
+      return;
+    }
     if (get().status === "checking" || get().status === "downloading") return;
     set({ status: "checking", error: null });
     try {
@@ -163,13 +173,17 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
     } catch (err) {
       set({
         status: "error",
-        error: message(err, "Failed to check for updates"),
+        error: message(err, i18n.t("core:updater.checkFailed")),
       });
     }
   },
 
   // Popup "Install" — download, install, and restart right away.
   installAndRelaunch: async () => {
+    if (UPDATES_DISABLED) {
+      set({ dialogOpen: false, status: "error", error: i18n.t("core:updater.disabled") });
+      return;
+    }
     set({ dialogOpen: false, error: null });
     try {
       const { check } = await import("@tauri-apps/plugin-updater");
@@ -185,7 +199,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
       const { relaunch } = await import("@tauri-apps/plugin-process");
       await relaunch();
     } catch (err) {
-      set({ status: "error", error: message(err, "Download failed") });
+      set({ status: "error", error: message(err, i18n.t("core:updater.downloadFailed")) });
     }
   },
 
@@ -198,7 +212,7 @@ export const useUpdaterStore = create<UpdaterState>((set, get) => ({
         status: "error",
         error: message(
           err,
-          "Couldn't restart automatically — please reopen the app",
+          i18n.t("core:updater.relaunchFailed"),
         ),
       });
     }

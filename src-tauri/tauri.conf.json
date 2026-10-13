@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "anySCP",
-  "version": "0.0.0-dev",
+  "version": "0.11.1",
   "identifier": "com.macnev2013.anyscp",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -29,14 +29,15 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "createUpdaterArtifacts": "v1Compatible"
+    "createUpdaterArtifacts": false,
+    "macOS": {
+      "signingIdentity": "-"
+    }
   },
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDExMjY1REUyNkY0RDVDQjUKUldTMVhFMXY0bDBtRWM5d2Q1OHY3RWc1aHl4c0tYaFJjOGtGY1pSd2hrK0FRNkJzNkFzNi9GbEYK",
-      "endpoints": [
-        "https://github.com/macnev2013/anySCP/releases/latest/download/latest.json"
-      ]
+      "endpoints": []
     }
   }
 }
