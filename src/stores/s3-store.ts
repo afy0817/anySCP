@@ -7,6 +7,9 @@ export interface S3Session {
   currentBucket: string | null;
   currentPrefix: string;
   entries: S3Entry[];
+  /** Token for the next page of `entries`, or null when the listing is
+   *  complete. Large prefixes are listed a page at a time. */
+  nextToken: string | null;
   buckets: S3BucketInfo[];
   loading: boolean;
   error: string | null;
@@ -27,7 +30,10 @@ interface S3State {
   setActiveS3Session: (id: string | null) => void;
   setBuckets: (sessionId: string, buckets: S3BucketInfo[]) => void;
   setCurrentBucket: (sessionId: string, bucket: string) => void;
-  setEntries: (sessionId: string, prefix: string, entries: S3Entry[]) => void;
+  setEntries: (sessionId: string, prefix: string, entries: S3Entry[], nextToken?: string | null) => void;
+  /** Append a further page to the current listing. Ignored if the user has
+   *  navigated away from `prefix` since the page was requested. */
+  appendEntries: (sessionId: string, prefix: string, entries: S3Entry[], nextToken: string | null) => void;
   setLoading: (sessionId: string, loading: boolean) => void;
   setError: (sessionId: string, error: string | null) => void;
   setSort: (sessionId: string, sortBy: "name" | "size" | "modified", sortAsc: boolean) => void;
@@ -49,6 +55,7 @@ export const useS3Store = create<S3State>((set, get) => ({
         currentBucket: null,
         currentPrefix: "",
         entries: [],
+        nextToken: null,
         buckets: [],
         loading: false,
         error: null,
@@ -84,16 +91,31 @@ export const useS3Store = create<S3State>((set, get) => ({
       const session = state.sessions.get(sessionId);
       if (!session) return state;
       const next = new Map(state.sessions);
-      next.set(sessionId, { ...session, currentBucket: bucket, currentPrefix: "", entries: [] });
+      next.set(sessionId, { ...session, currentBucket: bucket, currentPrefix: "", entries: [], nextToken: null });
       return { sessions: next };
     }),
 
-  setEntries: (sessionId, prefix, entries) =>
+  setEntries: (sessionId, prefix, entries, nextToken = null) =>
     set((state) => {
       const session = state.sessions.get(sessionId);
       if (!session) return state;
       const next = new Map(state.sessions);
-      next.set(sessionId, { ...session, currentPrefix: prefix, entries, loading: false, error: null });
+      next.set(sessionId, { ...session, currentPrefix: prefix, entries, nextToken, loading: false, error: null });
+      return { sessions: next };
+    }),
+
+  appendEntries: (sessionId, prefix, entries, nextToken) =>
+    set((state) => {
+      const session = state.sessions.get(sessionId);
+      if (!session || session.currentPrefix !== prefix) return state;
+      const next = new Map(state.sessions);
+      next.set(sessionId, {
+        ...session,
+        entries: [...session.entries, ...entries],
+        nextToken,
+        loading: false,
+        error: null,
+      });
       return { sessions: next };
     }),
 
@@ -157,6 +179,9 @@ export const useS3Store = create<S3State>((set, get) => ({
 if (typeof window !== "undefined") {
   const w = window as unknown as {
     __e2eDeleteS3Connection?: (id: string) => Promise<void>;
+    __e2eDuplicateS3Connection?: (
+      id: string,
+    ) => Promise<{ id: string; credential_error: string | null }>;
     __e2eReloadS3Connections?: () => Promise<void>;
     __e2eS3Order?: () => Promise<string[]>;
     __e2eS3Upload?: (sessionId: string, localPath: string, key: string) => Promise<void>;
@@ -166,6 +191,18 @@ if (typeof window !== "undefined") {
   w.__e2eDeleteS3Connection = async (id) => {
     const { invoke } = await import("@tauri-apps/api/core");
     await invoke("s3_delete_connection", { id });
+  };
+  // Duplicate through the backend command, which copies the access keys out of
+  // the keychain under the new id. Returns the outcome so the spec can assert
+  // the copy kept its credentials instead of inferring it from a later failure.
+  // (The UI trigger is the card's context menu, flaky in WebKitWebDriver —
+  // same reason the host duplicate spec uses a hook.)
+  w.__e2eDuplicateS3Connection = async (id) => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return await invoke<{ id: string; credential_error: string | null }>(
+      "s3_duplicate_connection",
+      { id },
+    );
   };
   // Reload the dashboard's S3 connection list (now store-owned) after an
   // out-of-band delete — used by the S3 delete E2E spec.

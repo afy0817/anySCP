@@ -1,5 +1,4 @@
 {
-  "copyLabel": "{{label}} (사본)",
   "colorSwatch": "색상 {{color}}",
   "environment": {
     "badge": {
@@ -41,7 +40,11 @@
     "toasts": {
       "hostOrderFailed": "호스트 순서를 저장하지 못해 되돌렸어요",
       "groupOrderFailed": "그룹 순서를 저장하지 못해 되돌렸어요",
-      "s3OrderFailed": "연결 순서를 저장하지 못해 되돌렸어요"
+      "s3OrderFailed": "연결 순서를 저장하지 못해 되돌렸어요",
+      "deleteHostFailed": "\"{{label}}\" 호스트를 삭제하지 못했어요",
+      "deleteGroupFailed": "\"{{name}}\" 그룹을 삭제하지 못했어요",
+      "duplicateHostFailed": "\"{{label}}\" 호스트를 복제하지 못했어요",
+      "duplicateHostNoCredential": "\"{{label}}\" 호스트는 복제했지만 저장된 자격 증명은 복사되지 않았어요. 사본에서 다시 입력해 주세요."
     },
     "errors": {
       "s3ConnectFailed": "S3에 연결하지 못했어요",

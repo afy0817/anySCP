@@ -10,10 +10,11 @@
     "noMatch": "“{{query}}”에 해당하는 연결이 없어요",
     "emptyTitle": "아직 S3 연결이 없어요",
     "emptyHint": "Amazon S3, MinIO, Cloudflare R2 등 S3 호환 스토리지에 연결해 보세요",
-    "copyLabel": "{{label}} (사본)",
     "deleteTitle": "이 S3 연결을 삭제할까요?",
     "deleteMessage": "이 연결이 영구적으로 삭제돼요",
-    "deleteConfirm": "확인"
+    "deleteConfirm": "확인",
+    "duplicateFailed": "\"{{label}}\" 연결을 복제하지 못했어요",
+    "duplicateNoKeys": "\"{{label}}\" 연결은 복제했지만 액세스 키는 복사되지 않았어요. 사본에서 다시 입력해 주세요."
   },
   "environments": {
     "none": "없음",
@@ -60,6 +61,9 @@
   "browser": {
     "listBucketsFailed": "버킷 목록을 불러오지 못했어요",
     "listObjectsFailed": "객체 목록을 불러오지 못했어요",
+    "moreAvailable": "항목 {{n}}개 표시 중 — 더 불러올 수 있어요",
+    "loadMore": "더 불러오기",
+    "loadingMore": "불러오는 중...",
     "switchBucketFailed": "버킷을 전환하지 못했어요",
     "downloadTitle": "\"{{name}}\" 다운로드",
     "uploadFileTitle": "파일 업로드",

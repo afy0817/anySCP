@@ -22,6 +22,7 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
   const { t } = useTranslation(["s3", "common"]);
   const session = useS3Store((s) => s.sessions.get(sessionId));
   const setEntries = useS3Store((s) => s.setEntries);
+  const appendEntries = useS3Store((s) => s.appendEntries);
   const setBuckets = useS3Store((s) => s.setBuckets);
   const setCurrentBucket = useS3Store((s) => s.setCurrentBucket);
   const setLoading = useS3Store((s) => s.setLoading);
@@ -139,13 +140,36 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
         prefix,
         continuationToken: null,
       });
-      setEntries(sessionId, prefix, result.entries);
+      setEntries(sessionId, prefix, result.entries, result.continuation_token);
     } catch (err) {
       const msg = err && typeof err === "object" && "message" in err
         ? String((err as { message: string }).message) : t("browser.listObjectsFailed");
       setError(sessionId, msg);
     }
   }, [sessionId, setLoading, setEntries, setError, t]);
+
+  // Fetch the next page of the current prefix. Listings come back a page
+  // (1000 keys) at a time so huge prefixes open instantly instead of the app
+  // walking every key before showing anything.
+  const loadMoreObjects = useCallback(async () => {
+    const current = useS3Store.getState().sessions.get(sessionId);
+    if (!current?.nextToken || current.loading) return;
+    const prefix = current.currentPrefix;
+    setLoading(sessionId, true);
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const result = await invoke<S3ListResult>("s3_list_objects", {
+        s3SessionId: sessionId,
+        prefix,
+        continuationToken: current.nextToken,
+      });
+      appendEntries(sessionId, prefix, result.entries, result.continuation_token);
+    } catch (err) {
+      const msg = err && typeof err === "object" && "message" in err
+        ? String((err as { message: string }).message) : t("browser.listObjectsFailed");
+      setError(sessionId, msg);
+    }
+  }, [sessionId, setLoading, appendEntries, setError, t]);
 
   const selectBucket = useCallback(async (bucketName: string) => {
     try {
@@ -474,6 +498,22 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
         currentPath={session.currentPrefix}
         loading={session.loading}
       />
+
+      {session.nextToken && (
+        <div data-testid="s3-load-more" className="flex items-center justify-center gap-3 px-4 py-2 border-t border-border bg-bg-surface shrink-0 no-select">
+          <span data-testid="s3-load-more-count" className="text-[length:var(--text-xs)] text-text-muted">
+            {t("browser.moreAvailable", { n: session.entries.length.toLocaleString() })}
+          </span>
+          <button
+            data-testid="s3-load-more-button"
+            onClick={() => void loadMoreObjects()}
+            disabled={session.loading}
+            className="px-3 py-1 rounded-md text-[length:var(--text-xs)] font-medium text-text-muted bg-bg-surface border border-border hover:border-border-focus hover:text-text-secondary hover:bg-bg-overlay disabled:opacity-50 transition-colors duration-[var(--duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {session.loading ? t("browser.loadingMore") : t("browser.loadMore")}
+          </button>
+        </div>
+      )}
 
       {isDragOver && <ExplorerDropZone path={session.currentPrefix || bucketName} />}
     </div>

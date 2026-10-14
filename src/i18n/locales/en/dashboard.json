@@ -1,5 +1,4 @@
 {
-  "copyLabel": "{{label}} (copy)",
   "colorSwatch": "Color {{color}}",
   "environment": {
     "badge": {
@@ -41,7 +40,11 @@
     "toasts": {
       "hostOrderFailed": "Couldn't save the new host order — reverted.",
       "groupOrderFailed": "Couldn't save the new group order — reverted.",
-      "s3OrderFailed": "Couldn't save the new connection order — reverted."
+      "s3OrderFailed": "Couldn't save the new connection order — reverted.",
+      "deleteHostFailed": "Couldn't delete \"{{label}}\".",
+      "deleteGroupFailed": "Couldn't delete \"{{name}}\".",
+      "duplicateHostFailed": "Couldn't duplicate \"{{label}}\".",
+      "duplicateHostNoCredential": "Duplicated \"{{label}}\", but its saved credential didn't copy — re-enter it on the copy."
     },
     "errors": {
       "s3ConnectFailed": "S3 connection failed",

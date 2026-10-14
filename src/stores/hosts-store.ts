@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import i18n from "../i18n";
-import type { SavedHost, RecentConnection } from "../types";
+import type { SavedHost, RecentConnection, DuplicateOutcome } from "../types";
 
 interface HostsState {
   hosts: SavedHost[];
@@ -10,7 +10,9 @@ interface HostsState {
 
   loadHosts: () => Promise<void>;
   saveHost: (host: SavedHost) => Promise<void>;
-  duplicateHost: (id: string) => Promise<void>;
+  /** Resolves with the backend outcome — `credential_error` is set when the
+   *  copy's secret didn't come across, so the caller can say so. */
+  duplicateHost: (id: string) => Promise<DuplicateOutcome>;
   deleteHost: (id: string) => Promise<void>;
   reorderHosts: (newOrder: SavedHost[]) => Promise<void>;
   loadRecent: () => Promise<void>;
@@ -62,9 +64,25 @@ export const useHostsStore = create<HostsState>((set, get) => ({
       last_connected_at: null,
       connection_count: null,
     };
-    await invoke("save_host", { host: duplicate });
-    const updated = await invoke<SavedHost[]>("list_hosts");
-    set({ hosts: updated });
+    // Backend duplicate (not plain save_host): it also copies the source's
+    // keychain secret under the new id, so a password/passphrase host's copy can
+    // actually authenticate. The frontend can't read the secret to copy it here.
+    const outcome = await invoke<DuplicateOutcome>("duplicate_host", {
+      host: duplicate,
+      sourceId: id,
+    });
+    // The copy is written at this point, so a failed reload must not surface as
+    // a failed duplicate: that reported "couldn't duplicate" over a row that
+    // exists, dropped the credential_error, and left no card on screen — so the
+    // user clicked Duplicate again and got a second row plus a second keychain
+    // entry. Fall back to the copy we just built; it's what the backend wrote.
+    try {
+      const updated = await invoke<SavedHost[]>("list_hosts");
+      set({ hosts: updated });
+    } catch {
+      set({ hosts: [...get().hosts, duplicate] });
+    }
+    return outcome;
   },
 
   deleteHost: async (id) => {
@@ -124,7 +142,7 @@ export const useHostsStore = create<HostsState>((set, get) => ({
 // can't be resolved in code injected at runtime. No production code reads these.
 if (typeof window !== "undefined") {
   const w = window as unknown as {
-    __e2eDuplicateHost?: (id: string) => Promise<void>;
+    __e2eDuplicateHost?: (id: string) => Promise<DuplicateOutcome>;
     __e2eBackupExport?: (password: string, path: string) => Promise<void>;
     __e2eBackupImport?: (password: string, path: string) => Promise<void>;
     __e2eFactoryReset?: () => Promise<void>;

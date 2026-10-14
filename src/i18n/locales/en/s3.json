@@ -10,10 +10,11 @@
     "noMatch": "No connections match “{{query}}”",
     "emptyTitle": "No S3 connections",
     "emptyHint": "Connect to Amazon S3, MinIO, Cloudflare R2, or any S3-compatible storage",
-    "copyLabel": "{{label}} (copy)",
     "deleteTitle": "Delete this S3 connection?",
     "deleteMessage": "This connection will be permanently removed.",
-    "deleteConfirm": "Confirm"
+    "deleteConfirm": "Confirm",
+    "duplicateFailed": "Couldn't duplicate \"{{label}}\".",
+    "duplicateNoKeys": "Duplicated \"{{label}}\", but its access keys didn't copy — re-enter them on the copy."
   },
   "environments": {
     "none": "None",
@@ -60,6 +61,9 @@
   "browser": {
     "listBucketsFailed": "Failed to list buckets",
     "listObjectsFailed": "Failed to list objects",
+    "moreAvailable": "Showing {{n}} items — more available",
+    "loadMore": "Load more",
+    "loadingMore": "Loading...",
     "switchBucketFailed": "Failed to switch bucket",
     "downloadTitle": "Download \"{{name}}\"",
     "uploadFileTitle": "Upload file",
