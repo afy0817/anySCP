@@ -1460,121 +1460,44 @@ pub async fn sftp_edit_external(
         serde_json::json!({ "source": "sftp", "editor": editor.name }),
     );
 
-    // 3. Watch for file saves and re-upload on each save
-    let sftp_arc_bg = sftp_arc.clone();
-    let remote_path_bg = remote_path.clone();
-    let local_path_bg = local_path.clone();
-    let app_handle_bg = app_handle.clone();
-    let sftp_sid = sftp_session_id.clone();
-
+    // 3. Re-upload on each save until the editor goes idle.
+    let rt = tokio::runtime::Handle::current();
     tokio::task::spawn_blocking(move || {
-        use notify::{Config, Event, EventKind, RecursiveMode, Watcher};
-        use std::sync::mpsc;
-
-        let (tx, rx) = mpsc::channel::<Event>();
-
-        let mut watcher = notify::RecommendedWatcher::new(
-            move |res: Result<Event, notify::Error>| {
-                if let Ok(event) = res {
-                    let _ = tx.send(event);
-                }
-            },
-            Config::default(),
-        )
-        .expect("Failed to create file watcher");
-
-        watcher
-            .watch(&local_path_bg, RecursiveMode::NonRecursive)
-            .expect("Failed to watch file");
-
         tracing::info!(
-            local_path = %local_path_bg.display(),
-            remote_path = %remote_path_bg,
+            local_path = %local_path.display(),
+            remote_path = %remote_path,
             "Watching for saves..."
         );
 
-        // Watch for 30 minutes max, then stop
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30 * 60);
+        crate::editors::watch_saves(&local_path, |contents| {
+            // Upload synchronously so successive saves land in order.
+            let result = rt.block_on(async {
+                let sftp = sftp_arc.lock().await;
+                let mut remote_file = sftp
+                    .open_with_flags(
+                        &remote_path,
+                        OpenFlags::CREATE | OpenFlags::WRITE | OpenFlags::TRUNCATE,
+                    )
+                    .await?;
+                remote_file.write_all(&contents).await?;
+                remote_file.flush().await?;
+                Ok::<(), russh_sftp::client::error::Error>(())
+            });
 
-        loop {
-            match rx.recv_timeout(std::time::Duration::from_secs(5)) {
-                Ok(event) => {
-                    // Only re-upload on actual write/modify events
-                    let is_write = matches!(
-                        event.kind,
-                        EventKind::Modify(notify::event::ModifyKind::Data(_))
-                            | EventKind::Modify(notify::event::ModifyKind::Any)
-                    );
-
-                    if !is_write {
-                        continue;
-                    }
-
-                    // Small debounce — editors may write multiple times
-                    std::thread::sleep(std::time::Duration::from_millis(300));
-
-                    // Read and re-upload
-                    match std::fs::read(&local_path_bg) {
-                        Ok(contents) => {
-                            let sftp_arc = sftp_arc_bg.clone();
-                            let remote_path = remote_path_bg.clone();
-                            let app_handle = app_handle_bg.clone();
-                            let sid = sftp_sid.clone();
-
-                            // Use a blocking runtime handle to run async upload
-                            let rt = tokio::runtime::Handle::current();
-                            rt.spawn(async move {
-                                let sftp = sftp_arc.lock().await;
-                                let result = async {
-                                    let mut remote_file = sftp
-                                        .open_with_flags(
-                                            &remote_path,
-                                            OpenFlags::CREATE
-                                                | OpenFlags::WRITE
-                                                | OpenFlags::TRUNCATE,
-                                        )
-                                        .await?;
-                                    remote_file.write_all(&contents).await?;
-                                    remote_file.flush().await?;
-                                    Ok::<(), russh_sftp::client::error::Error>(())
-                                }
-                                .await;
-
-                                match result {
-                                    Ok(()) => {
-                                        tracing::info!(
-                                            remote_path = %remote_path,
-                                            "File re-uploaded on save"
-                                        );
-                                        let _ = app_handle.emit("sftp:file-edited", &sid);
-                                    }
-                                    Err(e) => {
-                                        tracing::error!(
-                                            error = %e,
-                                            "Failed to re-upload on save"
-                                        );
-                                    }
-                                }
-                            });
-                        }
-                        Err(e) => {
-                            tracing::error!(error = %e, "Failed to read local file on save");
-                        }
-                    }
+            match result {
+                Ok(()) => {
+                    tracing::info!(remote_path = %remote_path, "File re-uploaded on save");
+                    let _ = app_handle.emit("sftp:file-edited", &sftp_session_id);
                 }
-                Err(mpsc::RecvTimeoutError::Timeout) => {
-                    // Check if past deadline
-                    if std::time::Instant::now() > deadline {
-                        tracing::info!("File watcher expired after 30 minutes");
-                        break;
-                    }
+                Err(e) => {
+                    tracing::error!(error = %e, "Failed to re-upload on save");
                 }
-                Err(mpsc::RecvTimeoutError::Disconnected) => break,
             }
-        }
+        });
 
+        tracing::info!("File watcher stopped after 30 idle minutes");
         // Cleanup: remove the file and prune its now-empty per-edit staging dirs.
-        crate::editors::edit_temp_cleanup(&local_path_bg);
+        crate::editors::edit_temp_cleanup(&local_path);
     });
 
     Ok(())

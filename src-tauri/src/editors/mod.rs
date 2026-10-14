@@ -552,6 +552,66 @@ pub fn edit_temp_cleanup(local_path: &Path) {
     }
 }
 
+/// How often a save-watcher checks the staged file.
+const SAVE_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(500);
+/// How long a save-watcher keeps going after the last save (or the download).
+const SAVE_WATCH_IDLE: std::time::Duration = std::time::Duration::from_secs(30 * 60);
+
+/// Block the calling thread, invoking `on_save` with the file's new contents
+/// each time the staged file at `local_path` is saved, until it has gone 30
+/// minutes without a save. Run it on a blocking thread; the caller cleans up.
+///
+/// This polls rather than using a filesystem watcher. A watcher on the file only
+/// follows the original inode, and NSDocument-based macOS editors (TextEdit,
+/// CotEditor, Xcode, ...) save atomically: they write a new file and rename it
+/// over the old one. The watcher then reported a remove instead of a modify, so
+/// those saves were never re-uploaded. Comparing contents catches every save
+/// style and skips no-op saves and metadata-only touches.
+pub fn watch_saves(local_path: &Path, on_save: impl FnMut(Vec<u8>)) {
+    watch_saves_with(local_path, SAVE_POLL_INTERVAL, SAVE_WATCH_IDLE, on_save);
+}
+
+fn watch_saves_with(
+    local_path: &Path,
+    poll: std::time::Duration,
+    idle: std::time::Duration,
+    mut on_save: impl FnMut(Vec<u8>),
+) {
+    let stamp = |p: &Path| {
+        std::fs::metadata(p)
+            .ok()
+            .map(|m| (m.modified().ok(), m.len()))
+    };
+    let mut seen = stamp(local_path);
+    let mut saved = std::fs::read(local_path).unwrap_or_default();
+    let mut dirty = false;
+    let mut deadline = std::time::Instant::now() + idle;
+
+    while std::time::Instant::now() < deadline {
+        std::thread::sleep(poll);
+        let current = stamp(local_path);
+        if current != seen {
+            // Changed since the last tick — wait a tick for the save to settle
+            // (editors may write in several steps, or be mid-rename).
+            seen = current;
+            dirty = true;
+            continue;
+        }
+        if !dirty {
+            continue;
+        }
+        // Unreadable (e.g. briefly missing mid-save): stay dirty and retry.
+        if let Ok(contents) = std::fs::read(local_path) {
+            dirty = false;
+            if contents != saved {
+                saved.clone_from(&contents);
+                on_save(contents);
+                deadline = std::time::Instant::now() + idle;
+            }
+        }
+    }
+}
+
 // ─── Launching ──────────────────────────────────────────────────────────────
 
 /// Launch `editor` against `file`. Spawns and returns immediately (the caller's
@@ -780,6 +840,46 @@ mod tests {
         assert!(group.exists(), "shared group dir kept while B lives");
 
         std::fs::remove_dir_all(&group).ok();
+    }
+
+    #[test]
+    fn watch_saves_sees_in_place_and_atomic_saves() {
+        use std::time::Duration;
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("a.txt");
+        std::fs::write(&file, b"v0").unwrap();
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        let watched = file.clone();
+        let watcher = std::thread::spawn(move || {
+            watch_saves_with(
+                &watched,
+                Duration::from_millis(10),
+                Duration::from_millis(1000),
+                |c| tx.send(c).unwrap(),
+            );
+        });
+        let settle = || std::thread::sleep(Duration::from_millis(200));
+        settle(); // let the watcher snapshot v0 first
+
+        // In-place write (VS Code style).
+        std::fs::write(&file, b"v1").unwrap();
+        settle();
+        // Atomic replace (NSDocument style): new inode renamed over the old one.
+        let tmp = dir.path().join(".a.txt.tmp");
+        std::fs::write(&tmp, b"v2").unwrap();
+        std::fs::rename(&tmp, &file).unwrap();
+        settle();
+        // Saving unchanged contents is not a new save.
+        std::fs::write(&file, b"v2").unwrap();
+        settle();
+        // A second atomic save is still seen (the old watcher lost the inode).
+        std::fs::write(&tmp, b"v3").unwrap();
+        std::fs::rename(&tmp, &file).unwrap();
+
+        watcher.join().unwrap(); // returns once idle
+        let saves: Vec<Vec<u8>> = rx.iter().collect();
+        assert_eq!(saves, vec![b"v1".to_vec(), b"v2".to_vec(), b"v3".to_vec()]);
     }
 
     #[test]

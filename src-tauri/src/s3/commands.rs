@@ -972,114 +972,40 @@ pub async fn s3_edit_external(
         serde_json::json!({ "source": "s3", "editor": editor.name }),
     );
 
-    // 3. Watch for file saves and re-upload on each save.
-    let key_bg = key.clone();
-    let local_path_bg = local_path.clone();
-    let app_handle_bg = app_handle.clone();
-    let sid = s3_session_id.clone();
-    let s3_manager_bg = Arc::clone(&s3_manager);
-
+    // 3. Re-upload on each save until the editor goes idle.
+    let s3_manager = Arc::clone(&s3_manager);
+    let rt = tokio::runtime::Handle::current();
     tokio::task::spawn_blocking(move || {
-        use notify::{Config, Event, EventKind, RecursiveMode, Watcher};
-        use std::sync::mpsc;
-
-        let (tx, rx) = mpsc::channel::<Event>();
-
-        let mut watcher = notify::RecommendedWatcher::new(
-            move |res: Result<Event, notify::Error>| {
-                if let Ok(event) = res {
-                    let _ = tx.send(event);
-                }
-            },
-            Config::default(),
-        )
-        .expect("Failed to create file watcher");
-
-        watcher
-            .watch(&local_path_bg, RecursiveMode::NonRecursive)
-            .expect("Failed to watch file");
-
         tracing::info!(
-            local_path = %local_path_bg.display(),
-            key = %key_bg,
+            local_path = %local_path.display(),
+            key = %key,
             "Watching S3 edit file for saves..."
         );
 
-        // Watch for 30 minutes max, then stop.
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30 * 60);
-
-        loop {
-            match rx.recv_timeout(std::time::Duration::from_secs(5)) {
-                Ok(event) => {
-                    // Only re-upload on actual write/modify events.
-                    let is_write = matches!(
-                        event.kind,
-                        EventKind::Modify(notify::event::ModifyKind::Data(_))
-                            | EventKind::Modify(notify::event::ModifyKind::Any)
-                    );
-
-                    if !is_write {
-                        continue;
-                    }
-
-                    // Small debounce — editors may write multiple times.
-                    std::thread::sleep(std::time::Duration::from_millis(300));
-
-                    // Read and re-upload.
-                    match std::fs::read(&local_path_bg) {
-                        Ok(contents) => {
-                            let key_inner = key_bg.clone();
-                            let app_handle_inner = app_handle_bg.clone();
-                            let sid_inner = sid.clone();
-                            let s3_manager_inner = Arc::clone(&s3_manager_bg);
-
-                            let rt = tokio::runtime::Handle::current();
-                            rt.spawn(async move {
-                                let bucket = match s3_manager_inner.get_bucket(&sid_inner) {
-                                    Ok(b) => b,
-                                    Err(e) => {
-                                        tracing::error!(
-                                            error = %e,
-                                            "S3 session gone during edit"
-                                        );
-                                        return;
-                                    }
-                                };
-
-                                match bucket.put_object(&key_inner, &contents).await {
-                                    Ok(_) => {
-                                        tracing::info!(
-                                            key = %key_inner,
-                                            "S3 object re-uploaded on save"
-                                        );
-                                        let _ = app_handle_inner.emit("s3:file-edited", &sid_inner);
-                                    }
-                                    Err(e) => {
-                                        tracing::error!(
-                                            error = %e,
-                                            "Failed to re-upload S3 object on save"
-                                        );
-                                    }
-                                }
-                            });
-                        }
-                        Err(e) => {
-                            tracing::error!(error = %e, "Failed to read local file on save");
-                        }
-                    }
+        crate::editors::watch_saves(&local_path, |contents| {
+            let bucket = match s3_manager.get_bucket(&s3_session_id) {
+                Ok(b) => b,
+                Err(e) => {
+                    tracing::error!(error = %e, "S3 session gone during edit");
+                    return;
                 }
-                Err(mpsc::RecvTimeoutError::Timeout) => {
-                    if std::time::Instant::now() > deadline {
-                        tracing::info!("S3 edit file watcher expired after 30 minutes");
-                        break;
-                    }
+            };
+
+            // Upload synchronously so successive saves land in order.
+            match rt.block_on(bucket.put_object(&key, &contents)) {
+                Ok(_) => {
+                    tracing::info!(key = %key, "S3 object re-uploaded on save");
+                    let _ = app_handle.emit("s3:file-edited", &s3_session_id);
                 }
-                Err(mpsc::RecvTimeoutError::Disconnected) => break,
+                Err(e) => {
+                    tracing::error!(error = %e, "Failed to re-upload S3 object on save");
+                }
             }
-        }
+        });
 
+        tracing::info!("S3 edit file watcher stopped after 30 idle minutes");
         // Cleanup: remove the file and prune its now-empty per-edit staging dirs.
-        crate::editors::edit_temp_cleanup(&local_path_bg);
+        crate::editors::edit_temp_cleanup(&local_path);
     });
 
     Ok(())

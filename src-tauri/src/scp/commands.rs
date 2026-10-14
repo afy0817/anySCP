@@ -501,77 +501,30 @@ pub async fn scp_edit_external(
         serde_json::json!({ "source": "scp", "editor": editor.name }),
     );
 
-    // 3. Watch for saves and re-upload (best-effort, 30-minute window).
-    let handle_bg = handle.clone();
-    let remote_path_bg = remote_path.clone();
-    let local_path_bg = local_path.clone();
-    let app_handle_bg = app_handle.clone();
-    let sid = scp_session_id.clone();
-
+    // 3. Re-upload on each save until the editor goes idle (best-effort).
+    let rt = tokio::runtime::Handle::current();
     tokio::task::spawn_blocking(move || {
-        use notify::{Config, Event, EventKind, RecursiveMode, Watcher};
-        use std::sync::mpsc;
-
-        let (tx, rx) = mpsc::channel::<Event>();
-        let mut watcher = notify::RecommendedWatcher::new(
-            move |res: Result<Event, notify::Error>| {
-                if let Ok(event) = res {
-                    let _ = tx.send(event);
+        crate::editors::watch_saves(&local_path, |_| {
+            // Upload synchronously so successive saves land in order.
+            let token = CancellationToken::new();
+            match rt.block_on(transfer::upload_file(
+                handle.clone(),
+                &local_path,
+                &remote_path,
+                &token,
+                |_| {},
+            )) {
+                Ok(()) => {
+                    tracing::info!(remote_path = %remote_path, "File re-uploaded on save (scp)");
+                    let _ = app_handle.emit("scp:file-edited", &scp_session_id);
                 }
-            },
-            Config::default(),
-        )
-        .expect("Failed to create file watcher");
-        watcher
-            .watch(&local_path_bg, RecursiveMode::NonRecursive)
-            .expect("Failed to watch file");
-
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30 * 60);
-
-        loop {
-            match rx.recv_timeout(std::time::Duration::from_secs(5)) {
-                Ok(event) => {
-                    let is_write = matches!(
-                        event.kind,
-                        EventKind::Modify(notify::event::ModifyKind::Data(_))
-                            | EventKind::Modify(notify::event::ModifyKind::Any)
-                    );
-                    if !is_write {
-                        continue;
-                    }
-                    std::thread::sleep(std::time::Duration::from_millis(300));
-
-                    let handle = handle_bg.clone();
-                    let remote_path = remote_path_bg.clone();
-                    let local_path = local_path_bg.clone();
-                    let app_handle = app_handle_bg.clone();
-                    let sid = sid.clone();
-                    let rt = tokio::runtime::Handle::current();
-                    rt.spawn(async move {
-                        let token = CancellationToken::new();
-                        match transfer::upload_file(handle, &local_path, &remote_path, &token, |_| {})
-                            .await
-                        {
-                            Ok(()) => {
-                                tracing::info!(remote_path = %remote_path, "File re-uploaded on save (scp)");
-                                let _ = app_handle.emit("scp:file-edited", &sid);
-                            }
-                            Err(e) => {
-                                tracing::error!(error = %e, "Failed to re-upload on save (scp)");
-                            }
-                        }
-                    });
+                Err(e) => {
+                    tracing::error!(error = %e, "Failed to re-upload on save (scp)");
                 }
-                Err(mpsc::RecvTimeoutError::Timeout) => {
-                    if std::time::Instant::now() > deadline {
-                        break;
-                    }
-                }
-                Err(mpsc::RecvTimeoutError::Disconnected) => break,
             }
-        }
+        });
         // Cleanup: remove the file and prune its now-empty per-edit staging dirs.
-        crate::editors::edit_temp_cleanup(&local_path_bg);
+        crate::editors::edit_temp_cleanup(&local_path);
     });
 
     Ok(())

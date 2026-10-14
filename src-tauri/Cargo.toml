@@ -47,9 +47,6 @@ dashmap = "6"
 # SQLite persistence
 rusqlite = { version = "0.31", features = ["bundled"] }
 
-# File watching (for edit-in-vscode re-upload on save)
-notify = { version = "7", default-features = false, features = ["macos_kqueue"] }
-
 # SFTP
 russh-sftp = "2.1"
 
