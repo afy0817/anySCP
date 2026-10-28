@@ -3,6 +3,7 @@ mod backup;
 mod db;
 mod editors;
 mod import;
+mod local;
 mod portforward;
 mod s3;
 mod scp;
@@ -201,6 +202,9 @@ pub fn run() {
         })
         .manage(SshManager::new())
         .invoke_handler(tauri::generate_handler![
+            // Local filesystem (explorer "This PC" pane)
+            local::local_list_dir,
+            local::local_home_dir,
             // SFTP — session & filesystem
             sftp::commands::sftp_open,
             sftp::commands::sftp_close,

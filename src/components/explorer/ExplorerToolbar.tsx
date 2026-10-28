@@ -9,6 +9,7 @@ import {
   Home,
   Loader2,
   Shield,
+  type LucideIcon,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import type { FileSystemProvider } from "../../types/explorer";
@@ -36,6 +37,13 @@ interface ExplorerToolbarProps {
   sudoMode?: boolean;
   sudoBusy?: boolean;
   onToggleSudo?: () => void;
+  /** Where the Home button goes instead of the root (the local pane's home
+   *  folder). */
+  homePath?: string;
+  /** Leading chip naming the pane (e.g. "This PC" in the dual-pane view). */
+  badge?: { icon: LucideIcon; label: string };
+  /** data-testid prefix, so two toolbars on screen stay distinguishable. */
+  testIdPrefix?: string;
 }
 
 // cache icons so they render once
@@ -74,6 +82,12 @@ function normalizePath(
   raw: string,
 ): string {
   const trimmed = raw.trim();
+  if (providerType === "local") {
+    // POSIX or Windows ("C:\…") absolute path; a drive root keeps its "\".
+    const stripped = trimmed.replace(/[\\/]+$/, "");
+    if (stripped === "") return "/";
+    return /^[A-Za-z]:$/.test(stripped) ? `${stripped}\\` : stripped;
+  }
   if (providerType === "sftp") {
     const stripped = trimmed.replace(/\/+$/, "");
     if (stripped === "") return "/";
@@ -98,6 +112,9 @@ export const ExplorerToolbar = memo(function ExplorerToolbar({
   sudoMode,
   sudoBusy,
   onToggleSudo,
+  homePath,
+  badge,
+  testIdPrefix = "explorer",
 }: ExplorerToolbarProps) {
   const { t } = useTranslation(["explorer", "common"]);
   const caps = provider.capabilities;
@@ -149,22 +166,27 @@ export const ExplorerToolbar = memo(function ExplorerToolbar({
     },
     [cancelEdit],
   );
-  const handleHome = useCallback(
-    () => onNavigate(providerType === "sftp" ? "/" : ""),
-    [onNavigate, providerType],
-  );
-  const isAtRoot =
-    providerType === "sftp" ? currentPath === "/" : currentPath === "";
+  const home = homePath ?? (providerType === "sftp" ? "/" : "");
+  const handleHome = useCallback(() => onNavigate(home), [onNavigate, home]);
+  const isAtRoot = currentPath === home;
+  const homeLabel = homePath ? t("toolbar.goHome") : t("toolbar.goToRoot");
 
   return (
     <div className="flex items-center h-10 px-2 border-b border-border bg-bg-surface shrink-0 gap-1 no-select">
+      {badge && (
+        <span className="flex items-center gap-1.5 px-1.5 shrink-0 text-[length:var(--text-xs)] font-medium text-text-secondary">
+          <badge.icon size={14} strokeWidth={1.8} aria-hidden="true" />
+          {badge.label}
+        </span>
+      )}
+
       {/* Home button */}
       <button
-        data-testid="explorer-home"
+        data-testid={`${testIdPrefix}-home`}
         onClick={handleHome}
         disabled={loading || isAtRoot}
-        title={t("toolbar.goTo", { root: provider.rootLabel() })}
-        aria-label={t("toolbar.goToRoot")}
+        title={homePath ? homeLabel : t("toolbar.goTo", { root: provider.rootLabel() })}
+        aria-label={homeLabel}
         className={ICON_BTN_CLASS}
       >
         <Home size={15} strokeWidth={1.8} aria-hidden="true" />
@@ -174,7 +196,7 @@ export const ExplorerToolbar = memo(function ExplorerToolbar({
       {isEditing ? (
         <input
           ref={inputRef}
-          data-testid="explorer-path-input"
+          data-testid={`${testIdPrefix}-path-input`}
           type="text"
           value={draftPath}
           onChange={(e) => setDraftPath(e.target.value)}
@@ -257,7 +279,7 @@ export const ExplorerToolbar = memo(function ExplorerToolbar({
       {/* Upload file */}
       {caps.canUpload && (
         <button
-          data-testid="explorer-upload"
+          data-testid={`${testIdPrefix}-upload`}
           onClick={onUpload}
           disabled={loading}
           title={t("toolbar.uploadFiles")}
@@ -271,7 +293,7 @@ export const ExplorerToolbar = memo(function ExplorerToolbar({
       {/* Upload folder */}
       {caps.canUpload && onUploadFolder && (
         <button
-          data-testid="explorer-upload-folder"
+          data-testid={`${testIdPrefix}-upload-folder`}
           onClick={onUploadFolder}
           disabled={loading}
           title={t("toolbar.uploadFolder")}
@@ -285,7 +307,7 @@ export const ExplorerToolbar = memo(function ExplorerToolbar({
       {/* New file */}
       {caps.canCreateFile && (
         <button
-          data-testid="explorer-new-file"
+          data-testid={`${testIdPrefix}-new-file`}
           onClick={onNewFile}
           disabled={loading}
           title={t("toolbar.newFile")}
@@ -299,7 +321,7 @@ export const ExplorerToolbar = memo(function ExplorerToolbar({
       {/* New folder */}
       {caps.canCreateFolder && (
         <button
-          data-testid="explorer-new-folder"
+          data-testid={`${testIdPrefix}-new-folder`}
           onClick={onNewFolder}
           disabled={loading}
           title={t("toolbar.newFolder")}
@@ -312,7 +334,7 @@ export const ExplorerToolbar = memo(function ExplorerToolbar({
 
       {/* Refresh */}
       <button
-        data-testid="explorer-refresh"
+        data-testid={`${testIdPrefix}-refresh`}
         onClick={onRefresh}
         disabled={loading}
         title={t("common:actions.refresh")}
@@ -329,7 +351,7 @@ export const ExplorerToolbar = memo(function ExplorerToolbar({
 
       {onToggleSudo && (
         <button
-          data-testid="explorer-sudo-toggle"
+          data-testid={`${testIdPrefix}-sudo-toggle`}
           onClick={onToggleSudo}
           disabled={sudoBusy}
           aria-busy={sudoBusy}

@@ -119,4 +119,63 @@ describe("useExplorerBackNavigation", () => {
     pressMouseBack(row);
     expect(onNavigate).not.toHaveBeenCalled();
   });
+
+  describe("with two panes on screen", () => {
+    let otherRoot: HTMLDivElement;
+    let otherRow: HTMLDivElement;
+    const otherNavigate = vi.fn();
+
+    function setupBoth() {
+      setup(); // `root` — not primary
+      return renderHook(() =>
+        useExplorerBackNavigation({
+          rootRef: { current: otherRoot },
+          isActive: true,
+          provider,
+          currentPath: "/srv/app",
+          loading: false,
+          onNavigate: otherNavigate,
+          primary: true,
+        }),
+      );
+    }
+
+    beforeEach(() => {
+      otherRoot = document.createElement("div");
+      otherRow = document.createElement("div");
+      otherRoot.appendChild(otherRow);
+      document.body.appendChild(otherRoot);
+      otherNavigate.mockReset();
+    });
+
+    afterEach(() => {
+      otherRoot.remove();
+    });
+
+    it("sends the mouse back button to the pane under the cursor", () => {
+      setupBoth();
+      pressMouseBack(row);
+      expect(onNavigate).toHaveBeenCalledWith("/home");
+      expect(otherNavigate).not.toHaveBeenCalled();
+    });
+
+    it("sends keyboard back to the focused pane", () => {
+      setupBoth();
+      pressKey(row, { key: "ArrowUp", altKey: true });
+      expect(onNavigate).toHaveBeenCalledTimes(1);
+      expect(otherNavigate).not.toHaveBeenCalled();
+    });
+
+    it("sends unfocused keyboard back to the primary pane until another is clicked", () => {
+      setupBoth();
+      pressKey(document.body, { key: "BrowserBack" });
+      expect(otherNavigate).toHaveBeenCalledWith("/srv");
+      expect(onNavigate).not.toHaveBeenCalled();
+
+      row.dispatchEvent(new MouseEvent("pointerdown", { bubbles: true }));
+      pressKey(document.body, { key: "BrowserBack" });
+      expect(onNavigate).toHaveBeenCalledWith("/home");
+      expect(otherNavigate).toHaveBeenCalledTimes(1);
+    });
+  });
 });

@@ -9,6 +9,8 @@ import type { SftpEntry } from "../../types";
 import type { ExplorerEntry, ExplorerClipboard, ChmodResult, DragOutResult } from "../../types/explorer";
 import { ExplorerToolbar, ExplorerFileTable, ExplorerDropZone } from "../explorer";
 import { DropOverwriteDialog } from "./DropOverwriteDialog";
+import { LocalPane } from "./LocalPane";
+import type { PaneTransfer } from "../explorer/ExplorerFileTable";
 import { createSftpProvider, toExplorerEntry } from "../../providers/sftp-provider";
 import { explorerInvoke, transferEventName, type Transport } from "../../lib/explorer-transport";
 import { editorLaunchErrorMessage } from "../../lib/editor-errors";
@@ -16,6 +18,8 @@ import { conflictingNames } from "../../lib/drop-conflicts";
 import { toast } from "../../stores/toast-store";
 import type { EditorConfig } from "../../stores/settings-store";
 import { useExplorerBackNavigation } from "../../hooks/use-explorer-back-navigation";
+import { useResizeHandle } from "../../hooks/use-resize-handle";
+import { useLocalExplorerStore } from "../../stores/local-explorer-store";
 
 interface ExplorerViewProps {
   /** The transport session id (sftp_session_id or scp_session_id). */
@@ -55,8 +59,8 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
   // When the cursor hovers a folder row during an OS drag, this holds that
   // folder's path so files drop INTO it; otherwise it tracks the current dir.
   const [dropTargetDir, setDropTargetDir] = useState<string | null>(null);
-  // Set when a drop would overwrite existing remote files, pausing the upload
-  // until the user confirms via the dialog.
+  // Set when a drop would overwrite existing files (remote for uploads, local
+  // for downloads), pausing the transfer until the user confirms via the dialog.
   const [pendingDrop, setPendingDrop] = useState<PendingDrop | null>(null);
   const isProcessingDrop = useRef(false);
   // True while a drag-OUT we started is in flight (staging + native OS drag).
@@ -80,12 +84,69 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
     [sessionId, transport, t],
   );
 
+  // Enqueue remote paths for download into a local folder, toasting failures.
+  const downloadDropped = useCallback(
+    async (remotePaths: string[], localDir: string) => {
+      try {
+        await explorerInvoke(transport, "enqueue_download", sessionId, { remotePaths, localDir });
+      } catch (err) {
+        toast.error(t("view.downloadFailed", { error: errorMessage(err) }));
+      }
+    },
+    [sessionId, transport, t],
+  );
+
+  // Upload into `remoteDir`, asking first if that would overwrite entries
+  // there. Resolves true when the confirm dialog took over. Best-effort: if
+  // the target listing can't be fetched (e.g. permissions) the prompt is
+  // skipped and the upload proceeds — a real failure surfaces in the popover.
+  const uploadChecked = useCallback(
+    async (localPaths: string[], remoteDir: string): Promise<boolean> => {
+      let conflicts: string[] = [];
+      try {
+        const existing = await explorerInvoke<SftpEntry[]>(transport, "list_dir", sessionId, { path: remoteDir });
+        conflicts = conflictingNames(localPaths, new Set(existing.map((e) => e.name)));
+      } catch {
+        // Skip the pre-check; proceed to upload.
+      }
+      if (conflicts.length > 0) {
+        setPendingDrop({ kind: "upload", sources: localPaths, targetDir: remoteDir, conflicts });
+        return true;
+      }
+      await uploadDropped(localPaths, remoteDir);
+      return false;
+    },
+    [sessionId, transport, uploadDropped],
+  );
+
+  // Download into `localDir`, asking first if that would overwrite local
+  // files — the backend replaces them without asking.
+  const downloadChecked = useCallback(
+    async (remotePaths: string[], localDir: string) => {
+      let conflicts: string[] = [];
+      try {
+        const existing = await invoke<SftpEntry[]>("local_list_dir", { path: localDir });
+        conflicts = conflictingNames(remotePaths, new Set(existing.map((e) => e.name)));
+      } catch {
+        // Skip the pre-check; proceed to download.
+      }
+      if (conflicts.length > 0) {
+        setPendingDrop({ kind: "download", sources: remotePaths, targetDir: localDir, conflicts });
+        return;
+      }
+      await downloadDropped(remotePaths, localDir);
+    },
+    [downloadDropped],
+  );
+
   const confirmOverwrite = useCallback(() => {
     const pd = pendingDrop;
     setPendingDrop(null);
     isProcessingDrop.current = false;
-    if (pd) void uploadDropped(pd.localPaths, pd.remoteDir);
-  }, [pendingDrop, uploadDropped]);
+    if (!pd) return;
+    if (pd.kind === "upload") void uploadDropped(pd.sources, pd.targetDir);
+    else void downloadDropped(pd.sources, pd.targetDir);
+  }, [pendingDrop, uploadDropped, downloadDropped]);
 
   const cancelOverwrite = useCallback(() => {
     setPendingDrop(null);
@@ -102,12 +163,15 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
   // already report CSS/logical pixels. `elementFromPoint` wants CSS pixels, so
   // we divide by devicePixelRatio ONLY on Windows; doing so elsewhere would
   // halve the coordinate on HiDPI/Retina and hit the wrong row.
+  // Returns null over the local "This PC" pane — OS files dropped there have
+  // nowhere to go.
   const resolveDropDir = useCallback(
-    (position?: { x: number; y: number }): string => {
+    (position?: { x: number; y: number }): string | null => {
       const base = currentPathRef.current;
       if (!position) return base;
       const scale = isWindowsWebview() ? window.devicePixelRatio || 1 : 1;
       const el = document.elementFromPoint(position.x / scale, position.y / scale);
+      if (el?.closest('[data-explorer-pane="local"]')) return null;
       const row = el?.closest("[data-entry-row]") as HTMLElement | null;
       if (row && row.dataset.entryType === "Directory") {
         const name = row.dataset.entryName;
@@ -157,8 +221,9 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
 
           const type = event.payload?.type;
           if (type === "enter" || type === "over") {
-            setIsDragOver(true);
-            setDropTargetDir(resolveDropDir(event.payload?.position));
+            const dir = resolveDropDir(event.payload?.position);
+            setIsDragOver(dir !== null);
+            setDropTargetDir(dir);
           } else if (type === "drop") {
             setIsDragOver(false);
             setDropTargetDir(null);
@@ -169,31 +234,16 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
             // cleared by the time the OS delivered the drop.
             if (paths.some((p) => p.includes(DRAGOUT_STAGING_SEGMENT))) return;
             if (isProcessingDrop.current || paths.length === 0) return;
-            isProcessingDrop.current = true;
 
             const remoteDir = resolveDropDir(event.payload?.position);
+            if (remoteDir === null) return;
+            isProcessingDrop.current = true;
 
             void (async () => {
-              // Pre-flight overwrite check. Best-effort: if the target listing
-              // can't be fetched (e.g. permissions) we skip the prompt and let
-              // the upload proceed — a real failure surfaces in the popover.
-              let conflicts: string[] = [];
-              try {
-                const existing = await explorerInvoke<SftpEntry[]>(transport, "list_dir", sessionId, { path: remoteDir });
-                conflicts = conflictingNames(paths, new Set(existing.map((e) => e.name)));
-              } catch {
-                // Skip the pre-check; proceed to upload.
-              }
-
-              if (conflicts.length > 0) {
-                // Hand off to the confirm dialog — it clears the processing
-                // guard once the user responds.
-                setPendingDrop({ localPaths: paths, remoteDir, conflicts });
-                return;
-              }
-
-              await uploadDropped(paths, remoteDir);
-              setTimeout(() => { isProcessingDrop.current = false; }, 500);
+              // Pre-flight overwrite check; on a conflict the confirm dialog
+              // takes over and clears the processing guard once answered.
+              const prompted = await uploadChecked(paths, remoteDir);
+              if (!prompted) setTimeout(() => { isProcessingDrop.current = false; }, 500);
             })();
           } else {
             setIsDragOver(false);
@@ -209,9 +259,10 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
 
     return () => { aborted = true; unlisten?.(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId, transport, isActive, resolveDropDir, uploadDropped]);
+  }, [sessionId, transport, isActive, resolveDropDir, uploadChecked]);
 
-  // ─── Auto-refresh on upload completion ────────────────────────────────────
+  // ─── Auto-refresh on transfer completion ──────────────────────────────────
+  // Uploads refresh the remote listing; downloads refresh the local pane.
 
   useEffect(() => {
     let aborted = false;
@@ -229,11 +280,14 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
         }>(transferEventName(transport), (event) => {
           const { direction, status } = event.payload;
           const sid = transport === "scp" ? event.payload.scp_session_id : event.payload.sftp_session_id;
-          if (sid === sessionId && direction === "Upload" && status === "Completed") {
+          if (sid !== sessionId || status !== "Completed") return;
+          if (direction === "Upload") {
             setTimeout(() => {
               const path = currentPathRef.current;
               if (path) void loadDirectory(path);
             }, 300);
+          } else if (direction === "Download" && useLocalExplorerStore.getState().visible) {
+            setTimeout(() => void useLocalExplorerStore.getState().refresh(), 300);
           }
         });
 
@@ -261,7 +315,8 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
     [sessionId, transport, setLoading, setEntries, setError, t],
   );
 
-  // Mouse back button / back shortcuts go to the parent folder.
+  // Mouse back button / back shortcuts go to the parent folder. The remote
+  // pane takes keyboard back presses unless the local pane was used last.
   const rootRef = useRef<HTMLDivElement>(null);
   useExplorerBackNavigation({
     rootRef,
@@ -270,7 +325,45 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
     currentPath: session?.currentPath ?? "/",
     loading: session?.loading ?? false,
     onNavigate: (path) => void loadDirectory(path),
+    primary: true,
   });
+
+  // ─── Local "This PC" pane ─────────────────────────────────────────────────
+
+  const showLocal = useLocalExplorerStore((s) => s.visible);
+  const localWidth = useLocalExplorerStore((s) => s.width);
+  const splitRef = useRef<HTMLDivElement>(null);
+  const handleSplitResize = useCallback((delta: number) => {
+    const total = splitRef.current?.clientWidth;
+    if (!total) return;
+    const { width, setWidth } = useLocalExplorerStore.getState();
+    setWidth(width + delta / total);
+  }, []);
+  const splitHandle = useResizeHandle({ direction: "horizontal", onResize: handleSplitResize });
+
+  // Local entries dropped on the remote pane (or sent from the menu).
+  const handleUploadFromLocal = useCallback(
+    (localPaths: string[], remoteDir: string | null) => {
+      void uploadChecked(localPaths, remoteDir ?? currentPathRef.current);
+    },
+    [uploadChecked],
+  );
+
+  // Remote entries dropped on the local pane (or sent from the menu).
+  const remotePaneTransfer = useMemo<PaneTransfer | undefined>(
+    () =>
+      showLocal
+        ? {
+            targetPane: "local",
+            direction: "download",
+            onTransfer: (selection, localDir) => {
+              const dir = localDir ?? useLocalExplorerStore.getState().currentPath;
+              if (dir) void downloadChecked(selection.map((e) => e.id), dir);
+            },
+          }
+        : undefined,
+    [showLocal, downloadChecked],
+  );
 
   // ─── Sudo toggle (SFTP only) ──────────────────────────────────────────────
 
@@ -781,80 +874,105 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
   if (!session) return null;
 
   return (
-    <div ref={rootRef} className="flex flex-col h-full overflow-hidden relative">
-      <ExplorerToolbar
-        provider={provider}
-        currentPath={session.currentPath}
-        segments={segments}
-        loading={session.loading}
-        onNavigate={(path) => void loadDirectory(path)}
-        onRefresh={() => void loadDirectory(session.currentPath)}
-        onNewFile={() => setCreatingFile(true)}
-        onNewFolder={() => setCreatingFolder(true)}
-        onUpload={() => void handleUpload()}
-        onUploadFolder={() => void handleUploadFolder()}
-        busy={busy}
-        sudoMode={sudoMode}
-        sudoBusy={togglingSudo}
-        onToggleSudo={transport === "sftp" && !isRoot ? () => void handleToggleSudo() : undefined}
-      />
-
-      {/* Error banner */}
-      {session.error && (
-        <div
-          data-testid="explorer-error"
-          className="flex items-center gap-2.5 px-4 py-2.5 bg-status-error/10 border-b border-status-error/20 text-status-error"
-        >
-          <AlertCircle size={15} strokeWidth={2} aria-hidden="true" className="shrink-0" />
-          <p className="text-[length:var(--text-sm)]">{session.error}</p>
-        </div>
+    <div ref={splitRef} className="flex h-full overflow-hidden">
+      {showLocal && (
+        <>
+          <div className="h-full min-w-0 shrink-0" style={{ width: `${localWidth * 100}%` }}>
+            <LocalPane isActive={isActive} onUpload={handleUploadFromLocal} />
+          </div>
+          {/* 1px divider with a wider invisible grab area for resizing. */}
+          <div className="relative w-px shrink-0 bg-border">
+            <div
+              {...splitHandle}
+              role="separator"
+              aria-orientation="vertical"
+              aria-label={t("local.resize")}
+              data-testid="explorer-split-handle"
+              className="absolute inset-y-0 -left-1 w-2 z-10 cursor-col-resize hover:bg-accent/30"
+            />
+          </div>
+        </>
       )}
-
-      <ExplorerFileTable
-        provider={provider}
-        entries={explorerEntries}
-        sortBy={session.sortBy}
-        sortAsc={session.sortAsc}
-        onSortChange={(sortBy, sortAsc) => setSort(sessionId, sortBy, sortAsc)}
-        clipboard={explorerClipboard}
-        onSetClipboard={handleSetClipboard}
-        onNavigate={(path) => void loadDirectory(path)}
-        onDownload={(entry) => void handleDownload(entry)}
-        onDownloadMany={(entries) => void handleDownloadMany(entries)}
-        onDelete={handleDelete}
-        onRename={handleRename}
-        onEditInEditor={handleEditInEditor}
-        onApplyPermissions={handleApplyPermissions}
-        creatingFile={creatingFile}
-        onCreateFile={(name) => void handleCreateFile(name)}
-        onCancelCreateFile={() => setCreatingFile(false)}
-        creatingFolder={creatingFolder}
-        onCreateFolder={(name) => void handleCreateFolder(name)}
-        onCancelCreateFolder={() => setCreatingFolder(false)}
-        onPaste={() => void handlePaste()}
-        onMoveEntries={handleMoveEntries}
-        onCopyEntries={handleCopyEntries}
-        onDragOut={transport === "sftp" ? handleDragOut : undefined}
-        currentPath={session.currentPath}
-        loading={session.loading}
-        busy={busy}
-      />
-
-      {isDragOver && (
-        <ExplorerDropZone
-          path={dropTargetDir ?? session.currentPath}
-          intoFolder={!!dropTargetDir && dropTargetDir !== session.currentPath}
+      <div
+        ref={rootRef}
+        data-explorer-pane="remote"
+        className="flex flex-col flex-1 min-w-0 h-full overflow-hidden relative data-[drop-target=true]:outline-2 data-[drop-target=true]:-outline-offset-2 data-[drop-target=true]:outline-accent"
+      >
+        <ExplorerToolbar
+          provider={provider}
+          currentPath={session.currentPath}
+          segments={segments}
+          loading={session.loading}
+          onNavigate={(path) => void loadDirectory(path)}
+          onRefresh={() => void loadDirectory(session.currentPath)}
+          onNewFile={() => setCreatingFile(true)}
+          onNewFolder={() => setCreatingFolder(true)}
+          onUpload={() => void handleUpload()}
+          onUploadFolder={() => void handleUploadFolder()}
+          busy={busy}
+          sudoMode={sudoMode}
+          sudoBusy={togglingSudo}
+          onToggleSudo={transport === "sftp" && !isRoot ? () => void handleToggleSudo() : undefined}
         />
-      )}
 
-      {pendingDrop && (
-        <DropOverwriteDialog
-          conflicts={pendingDrop.conflicts}
-          targetDir={pendingDrop.remoteDir}
-          onConfirm={confirmOverwrite}
-          onCancel={cancelOverwrite}
+        {/* Error banner */}
+        {session.error && (
+          <div
+            data-testid="explorer-error"
+            className="flex items-center gap-2.5 px-4 py-2.5 bg-status-error/10 border-b border-status-error/20 text-status-error"
+          >
+            <AlertCircle size={15} strokeWidth={2} aria-hidden="true" className="shrink-0" />
+            <p className="text-[length:var(--text-sm)]">{session.error}</p>
+          </div>
+        )}
+
+        <ExplorerFileTable
+          provider={provider}
+          entries={explorerEntries}
+          sortBy={session.sortBy}
+          sortAsc={session.sortAsc}
+          onSortChange={(sortBy, sortAsc) => setSort(sessionId, sortBy, sortAsc)}
+          clipboard={explorerClipboard}
+          onSetClipboard={handleSetClipboard}
+          onNavigate={(path) => void loadDirectory(path)}
+          onDownload={(entry) => void handleDownload(entry)}
+          onDownloadMany={(entries) => void handleDownloadMany(entries)}
+          onDelete={handleDelete}
+          onRename={handleRename}
+          onEditInEditor={handleEditInEditor}
+          onApplyPermissions={handleApplyPermissions}
+          creatingFile={creatingFile}
+          onCreateFile={(name) => void handleCreateFile(name)}
+          onCancelCreateFile={() => setCreatingFile(false)}
+          creatingFolder={creatingFolder}
+          onCreateFolder={(name) => void handleCreateFolder(name)}
+          onCancelCreateFolder={() => setCreatingFolder(false)}
+          onPaste={() => void handlePaste()}
+          onMoveEntries={handleMoveEntries}
+          onCopyEntries={handleCopyEntries}
+          onDragOut={transport === "sftp" ? handleDragOut : undefined}
+          paneTransfer={remotePaneTransfer}
+          currentPath={session.currentPath}
+          loading={session.loading}
+          busy={busy}
         />
-      )}
+
+        {isDragOver && (
+          <ExplorerDropZone
+            path={dropTargetDir ?? session.currentPath}
+            intoFolder={!!dropTargetDir && dropTargetDir !== session.currentPath}
+          />
+        )}
+
+        {pendingDrop && (
+          <DropOverwriteDialog
+            conflicts={pendingDrop.conflicts}
+            targetDir={pendingDrop.targetDir}
+            onConfirm={confirmOverwrite}
+            onCancel={cancelOverwrite}
+          />
+        )}
+      </div>
     </div>
   );
 }
@@ -862,8 +980,10 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
 // ─── Drag-drop overwrite confirmation ────────────────────────────────────────
 
 interface PendingDrop {
-  localPaths: string[];
-  remoteDir: string;
+  /** "upload": local paths → remote dir; "download": remote paths → local dir. */
+  kind: "upload" | "download";
+  sources: string[];
+  targetDir: string;
   conflicts: string[];
 }
 

@@ -14,6 +14,7 @@ import {
   ChevronUp,
   ChevronDown,
   Download,
+  Upload,
   Pencil,
   Trash2,
   Copy,
@@ -88,11 +89,27 @@ interface ExplorerFileTableProps {
    *  elsewhere); a plain drag stays an in-app move. Absent for providers
    *  without OS drag-out support (e.g. SCP/S3). */
   onDragOut?: (entries: ExplorerEntry[]) => void;
+  /** Dual-pane transfer (this PC ↔ remote). Rows can be dragged onto the pane
+   *  marked `data-explorer-pane={targetPane}` — onto one of its folder rows to
+   *  land inside that folder — and the context menu gains a matching action. */
+  paneTransfer?: PaneTransfer;
+  /** data-testid prefix, so two tables on screen stay distinguishable. */
+  testIdPrefix?: string;
   /** Current directory path/prefix. Used to reset scroll on navigation while
    *  preserving it across same-directory refreshes (e.g. after a chmod). */
   currentPath?: string;
   loading?: boolean;
   busy?: boolean;
+}
+
+export interface PaneTransfer {
+  /** `data-explorer-pane` value of the pane entries are sent to. */
+  targetPane: string;
+  /** Picks the drag-ghost and menu wording. */
+  direction: "upload" | "download";
+  /** `targetDir` is the folder row dropped on, or null for the target pane's
+   *  current folder. */
+  onTransfer: (entries: ExplorerEntry[], targetDir: string | null) => void;
 }
 
 interface ContextMenuState {
@@ -363,11 +380,14 @@ export function ExplorerFileTable({
   onMoveEntries,
   onCopyEntries,
   onDragOut,
+  paneTransfer,
+  testIdPrefix = "explorer",
   currentPath,
   loading,
 }: ExplorerFileTableProps) {
   const { t } = useTranslation(["explorer", "common"]);
   const caps = provider.capabilities;
+  const hasLastColumn = caps.hasPermissions || caps.hasStorageClass;
   const editors = useSettingsStore((s) => s.editors);
   const defaultEditorId = useSettingsStore((s) => s.defaultEditorId);
   const doubleClickAction = useSettingsStore(
@@ -392,6 +412,8 @@ export function ExplorerFileTable({
     y: number;
     count: number;
     copy: boolean;
+    /** Over the other pane (or nothing else to do): a cross-pane transfer. */
+    transfer: boolean;
   } | null>(null);
 
   // Reset scroll to the top only when the directory actually changes. Same-dir
@@ -586,7 +608,7 @@ export function ExplorerFileTable({
   const handleRowPointerDown = useCallback(
     (e: React.PointerEvent, entry: ExplorerEntry) => {
       if (e.button !== 0 || renamingId) return;
-      if (!(caps.canInternalDragMove || onDragOut)) return;
+      if (!(caps.canInternalDragMove || onDragOut || paneTransfer)) return;
       if ((e.target as HTMLElement).closest("input")) return;
 
       const dragEntries =
@@ -604,7 +626,9 @@ export function ExplorerFileTable({
         const row = (
           document.elementFromPoint(x, y) as HTMLElement | null
         )?.closest("[data-entry-row]") as HTMLElement | null;
-        if (!row || row.dataset.entryType !== "Directory") return null;
+        // Rows of another pane's table are that pane's business.
+        if (!row || !tableRef.current?.contains(row)) return null;
+        if (row.dataset.entryType !== "Directory") return null;
         const target = entries.find(
           (en) =>
             en.name === row.dataset.entryName && en.entryType === "Directory",
@@ -617,6 +641,35 @@ export function ExplorerFileTable({
         )
           return null;
         return target.id;
+      };
+
+      // Resolve the other pane under a point: the folder row there (drop into
+      // it) or the pane itself (drop into its current folder).
+      const paneTargetAt = (
+        x: number,
+        y: number,
+      ): { el: HTMLElement; dir: string | null } | null => {
+        if (!paneTransfer) return null;
+        const hit = document.elementFromPoint(x, y) as HTMLElement | null;
+        const pane = hit?.closest(
+          `[data-explorer-pane="${paneTransfer.targetPane}"]`,
+        ) as HTMLElement | null;
+        if (!pane) return null;
+        const row = hit?.closest("[data-entry-row]") as HTMLElement | null;
+        if (row && pane.contains(row) && row.dataset.entryType === "Directory") {
+          return { el: row, dir: row.dataset.entryId ?? null };
+        }
+        return { el: pane, dir: null };
+      };
+
+      // The other pane's table can't see this drag, so its drop highlight is
+      // set straight on the DOM (styled via `data-drop-target`).
+      let hoverEl: HTMLElement | null = null;
+      const setHoverEl = (el: HTMLElement | null) => {
+        if (el === hoverEl) return;
+        hoverEl?.removeAttribute("data-drop-target");
+        el?.setAttribute("data-drop-target", "true");
+        hoverEl = el;
       };
 
       // Hand off to the native OS download drag (only once).
@@ -632,8 +685,12 @@ export function ExplorerFileTable({
         if (!started) {
           if (Math.hypot(ev.clientX - startX, ev.clientY - startY) < 5) return;
           started = true;
-          // Providers that can't move in-app (none today) can only download.
-          if (!caps.canInternalDragMove) {
+          // A drag can cross into the other pane's table, so text selection is
+          // suppressed page-wide rather than just on this scroller.
+          document.getSelection()?.removeAllRanges();
+          document.body.style.userSelect = "none";
+          // Providers that can't move in-app or transfer can only download.
+          if (!caps.canInternalDragMove && !paneTransfer) {
             dragOut();
             return;
           }
@@ -652,12 +709,19 @@ export function ExplorerFileTable({
             dragOut();
             return;
           }
-          setDragOverId(folderTargetAt(ev.clientX, ev.clientY));
+          const paneHit = paneTargetAt(ev.clientX, ev.clientY);
+          setHoverEl(paneHit?.el ?? null);
+          setDragOverId(
+            !paneHit && caps.canInternalDragMove
+              ? folderTargetAt(ev.clientX, ev.clientY)
+              : null,
+          );
           setDragGhost({
             x: ev.clientX,
             y: ev.clientY,
             count: dragEntries.length,
             copy: ev.altKey,
+            transfer: !!paneHit || !caps.canInternalDragMove,
           });
         }
       };
@@ -675,7 +739,10 @@ export function ExplorerFileTable({
       };
 
       const onUp = (ev: PointerEvent) => {
-        if (moving) {
+        const paneHit = moving ? paneTargetAt(ev.clientX, ev.clientY) : null;
+        if (paneHit) {
+          paneTransfer?.onTransfer(dragEntries, paneHit.dir);
+        } else if (moving && caps.canInternalDragMove) {
           const targetId = folderTargetAt(ev.clientX, ev.clientY);
           if (targetId) {
             const handler = ev.altKey ? onCopyEntries : onMoveEntries;
@@ -694,6 +761,8 @@ export function ExplorerFileTable({
         window.removeEventListener("keydown", onKey);
         window.removeEventListener("keyup", onKey);
         document.removeEventListener("mouseleave", onWindowLeave);
+        setHoverEl(null);
+        if (started) document.body.style.userSelect = "";
         setDragOverId(null);
         setDragGhost(null);
       }
@@ -707,6 +776,7 @@ export function ExplorerFileTable({
     [
       caps.canInternalDragMove,
       onDragOut,
+      paneTransfer,
       onMoveEntries,
       onCopyEntries,
       selectedIds,
@@ -810,6 +880,16 @@ export function ExplorerFileTable({
 
     if (isInSelection) {
       const count = selectedIds.size;
+      if (paneTransfer) {
+        items.push({
+          label:
+            paneTransfer.direction === "upload"
+              ? t("menu.uploadItems", { count })
+              : t("menu.downloadItemsToLocal", { count }),
+          icon: paneTransfer.direction === "upload" ? Upload : Download,
+          onClick: () => paneTransfer.onTransfer(selectedEntries, null),
+        });
+      }
       if (caps.canDownload && onDownloadMany) {
         items.push({
           label: t("menu.downloadItems", { count }),
@@ -885,6 +965,17 @@ export function ExplorerFileTable({
           })),
         });
       }
+    }
+
+    if (paneTransfer) {
+      items.push({
+        label:
+          paneTransfer.direction === "upload"
+            ? t("menu.upload")
+            : t("menu.downloadToLocal"),
+        icon: paneTransfer.direction === "upload" ? Upload : Download,
+        onClick: () => paneTransfer.onTransfer([entry], null),
+      });
     }
 
     if (caps.canDownload) {
@@ -1056,7 +1147,7 @@ export function ExplorerFileTable({
         <span className="w-5 shrink-0" />
 
         <button
-          data-testid="explorer-sort-name"
+          data-testid={`${testIdPrefix}-sort-name`}
           className={`flex-1 text-left ${thClass("name")}`}
           onClick={() => handleSortClick("name")}
           aria-sort={
@@ -1067,7 +1158,7 @@ export function ExplorerFileTable({
         </button>
 
         <button
-          data-testid="explorer-sort-size"
+          data-testid={`${testIdPrefix}-sort-size`}
           className={`w-20 text-right ${thClass("size")}`}
           onClick={() => handleSortClick("size")}
           aria-sort={
@@ -1078,7 +1169,7 @@ export function ExplorerFileTable({
         </button>
 
         <button
-          data-testid="explorer-sort-modified"
+          data-testid={`${testIdPrefix}-sort-modified`}
           className={`w-44 text-center ${thClass("modified")}`}
           onClick={() => handleSortClick("modified")}
           aria-sort={
@@ -1094,13 +1185,13 @@ export function ExplorerFileTable({
         </button>
 
         {/* Last column: Permissions for SFTP, Class for S3 */}
-        <span className="w-24 text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-text-muted select-none">
-          {caps.hasPermissions
-            ? t("table.columns.permissions")
-            : caps.hasStorageClass
-              ? t("table.columns.class")
-              : ""}
-        </span>
+        {hasLastColumn && (
+          <span className="w-24 text-[length:var(--text-xs)] font-semibold uppercase tracking-wide text-text-muted select-none">
+            {caps.hasPermissions
+              ? t("table.columns.permissions")
+              : t("table.columns.class")}
+          </span>
+        )}
       </div>
 
       <div
@@ -1195,7 +1286,8 @@ export function ExplorerFileTable({
                   data-entry-row="true"
                   data-entry-name={entry.name}
                   data-entry-type={entry.entryType}
-                  data-testid={`explorer-entry-${entry.name}`}
+                  data-entry-id={entry.id}
+                  data-testid={`${testIdPrefix}-entry-${entry.name}`}
                   tabIndex={0}
                   onClick={(e) => handleRowClick(entry, e)}
                   onDoubleClick={() => handleDoubleClick(entry)}
@@ -1300,7 +1392,7 @@ export function ExplorerFileTable({
                   // drag-drop handler). Drop on a folder = move (Alt = copy);
                   // drag out of the window = download. See handleRowPointerDown.
                   onPointerDown={
-                    caps.canInternalDragMove || onDragOut
+                    caps.canInternalDragMove || onDragOut || paneTransfer
                       ? (e) => handleRowPointerDown(e, entry)
                       : undefined
                   }
@@ -1316,6 +1408,8 @@ export function ExplorerFileTable({
                     dragOverId === entry.id
                       ? "ring-2 ring-accent bg-accent/10"
                       : "",
+                    // Drop highlight while the other pane drags onto this row.
+                    "data-[drop-target=true]:ring-2 data-[drop-target=true]:ring-accent data-[drop-target=true]:bg-accent/10",
                   ].join(" ")}
                 >
                   {/* Icon */}
@@ -1355,20 +1449,20 @@ export function ExplorerFileTable({
                   </span>
 
                   {/* Permissions / Storage Class */}
-                  <span
-                    data-entry-perms={
-                      caps.hasPermissions
+                  {hasLastColumn && (
+                    <span
+                      data-entry-perms={
+                        caps.hasPermissions
+                          ? (entry.permissionsDisplay ?? "")
+                          : undefined
+                      }
+                      className="w-24 font-mono text-[length:var(--text-xs)] text-text-muted shrink-0 tracking-tight whitespace-nowrap"
+                    >
+                      {caps.hasPermissions
                         ? (entry.permissionsDisplay ?? "")
-                        : undefined
-                    }
-                    className="w-24 font-mono text-[length:var(--text-xs)] text-text-muted shrink-0 tracking-tight whitespace-nowrap"
-                  >
-                    {caps.hasPermissions
-                      ? (entry.permissionsDisplay ?? "")
-                      : caps.hasStorageClass
-                        ? (entry.storageClass ?? "—")
-                        : ""}
-                  </span>
+                        : (entry.storageClass ?? "—")}
+                    </span>
+                  )}
                 </div>
               );
             })}
@@ -1410,9 +1504,13 @@ export function ExplorerFileTable({
           className="fixed z-50 pointer-events-none rounded-md bg-accent px-2 py-1 text-[length:var(--text-2xs)] font-medium text-white shadow-[var(--shadow-md)]"
           style={{ left: dragGhost.x + 12, top: dragGhost.y + 8 }}
         >
-          {dragGhost.copy
-            ? t("table.dragCopy", { count: dragGhost.count })
-            : t("table.dragMove", { count: dragGhost.count })}
+          {dragGhost.transfer && paneTransfer
+            ? paneTransfer.direction === "upload"
+              ? t("table.dragUpload", { count: dragGhost.count })
+              : t("table.dragDownload", { count: dragGhost.count })
+            : dragGhost.copy
+              ? t("table.dragCopy", { count: dragGhost.count })
+              : t("table.dragMove", { count: dragGhost.count })}
         </div>
       )}
     </>

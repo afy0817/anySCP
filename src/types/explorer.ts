@@ -65,11 +65,11 @@ export interface ProviderCapabilities {
 
 /**
  * Operations adapter — bridges shared UI components to SFTP/S3 backend calls.
- * Each browser (SftpBrowser, S3Browser) creates a provider and passes it to
- * the shared ExplorerFileTable and ExplorerToolbar.
+ * Each browser (SftpBrowser, S3Browser, the local "This PC" pane) creates a
+ * provider and passes it to the shared ExplorerFileTable and ExplorerToolbar.
  */
 export interface FileSystemProvider {
-  readonly type: "sftp" | "s3";
+  readonly type: "sftp" | "s3" | "local";
   readonly sessionId: string;
   readonly capabilities: ProviderCapabilities;
 

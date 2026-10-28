@@ -14,7 +14,8 @@
     "newFile": "New file",
     "newFolder": "New folder",
     "enableSudo": "Enable sudo mode",
-    "disableSudo": "Disable sudo mode"
+    "disableSudo": "Disable sudo mode",
+    "goHome": "Go to home folder"
   },
   "dropZone": {
     "dropFiles": "Drop files to upload",
@@ -42,7 +43,11 @@
     "dragCopy_one": "Copy {{count}} item",
     "dragCopy_other": "Copy {{count}} items",
     "dragMove_one": "Move {{count}} item · ⌥ to copy",
-    "dragMove_other": "Move {{count}} items · ⌥ to copy"
+    "dragMove_other": "Move {{count}} items · ⌥ to copy",
+    "dragUpload_one": "Upload {{count}} item",
+    "dragUpload_other": "Upload {{count}} items",
+    "dragDownload_one": "Download {{count}} item to This PC",
+    "dragDownload_other": "Download {{count}} items to This PC"
   },
   "menu": {
     "paste": "Paste",
@@ -59,7 +64,11 @@
     "copyPresignedUrl": "Copy Presigned URL",
     "copyPath": "Copy Path",
     "cut": "Cut",
-    "properties": "Properties"
+    "properties": "Properties",
+    "upload": "Upload",
+    "uploadItems": "Upload {{count}} items",
+    "downloadToLocal": "Download to This PC",
+    "downloadItemsToLocal": "Download {{count}} items to This PC"
   },
   "deleteConfirm": {
     "titleFile": "Delete File",
@@ -155,5 +164,11 @@
   },
   "page": {
     "fallbackLabel": "Explorer"
+  },
+  "local": {
+    "title": "This PC",
+    "show": "Show This PC pane",
+    "hide": "Hide This PC pane",
+    "resize": "Resize panes"
   }
 }

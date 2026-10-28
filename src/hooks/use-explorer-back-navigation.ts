@@ -10,10 +10,30 @@ interface ExplorerBackNavigationOptions {
   currentPath: string;
   loading: boolean;
   onNavigate: (path: string) => void;
+  /** With several panes on screen (this PC | remote), the one that takes
+   *  keyboard back presses until another pane is clicked. */
+  primary?: boolean;
 }
 
 /** A dialog or context menu open over the listing owns the input. */
 const BLOCKING_SELECTOR = '[role="dialog"], [role="menu"]';
+
+interface Pane {
+  rootRef: RefObject<HTMLElement | null>;
+  primary: boolean;
+}
+
+// Panes currently listening, and the one the user last clicked or navigated
+// with the keyboard. A keyboard back press with focus outside every pane (e.g.
+// on <body> after the listing re-rendered) goes to that pane, else the primary.
+const listening = new Set<Pane>();
+let lastUsed: Pane | null = null;
+
+function keyboardOwner(): Pane | undefined {
+  if (lastUsed && listening.has(lastUsed)) return lastUsed;
+  const panes = [...listening];
+  return panes.find((p) => p.primary) ?? panes[0];
+}
 
 /**
  * Maps the platform "back" actions to "go to parent folder" in the explorer:
@@ -28,6 +48,7 @@ export function useExplorerBackNavigation({
   currentPath,
   loading,
   onNavigate,
+  primary = false,
 }: ExplorerBackNavigationOptions) {
   // Read at event time so the listeners don't re-subscribe on every navigation.
   const goUpRef = useRef<() => void>(() => {});
@@ -42,12 +63,18 @@ export function useExplorerBackNavigation({
   useEffect(() => {
     if (!isActive) return;
 
+    const pane: Pane = { rootRef, primary };
+    listening.add(pane);
+
     const isMac = navigator.platform.includes("Mac") || navigator.platform === "MacIntel";
 
     const isBlocked = (target: EventTarget | null): boolean => {
       if (target instanceof Element && target.closest(BLOCKING_SELECTOR)) return true;
       return !!rootRef.current?.querySelector(BLOCKING_SELECTOR);
     };
+
+    const inPane = (p: Pane, target: EventTarget | null): boolean =>
+      target instanceof Node && !!p.rootRef.current?.contains(target);
 
     function handleKeyDown(e: KeyboardEvent) {
       const isArrowBack =
@@ -61,11 +88,22 @@ export function useExplorerBackNavigation({
       if (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable) return;
       if (isBlocked(target)) return;
 
+      // Focus inside a pane decides; otherwise the last-used (or primary) pane.
+      if (!inPane(pane, target)) {
+        const focusedPane = [...listening].find((p) => inPane(p, target));
+        if (focusedPane || keyboardOwner() !== pane) return;
+      }
+
       // Capture phase + stopPropagation so a focused row doesn't also treat
       // the arrow as a selection move.
       e.preventDefault();
       e.stopPropagation();
+      lastUsed = pane;
       goUpRef.current();
+    }
+
+    function handlePointerDown(e: PointerEvent) {
+      if (inPane(pane, e.target)) lastUsed = pane;
     }
 
     // Button 3 is the mouse "back" button (WKWebView reports it too). Cancel
@@ -73,21 +111,27 @@ export function useExplorerBackNavigation({
     // navigation; act on release, like browsers do.
     function handleMouse(e: MouseEvent) {
       if (e.button !== 3) return;
-      const root = rootRef.current;
-      if (!root || !(e.target instanceof Node) || !root.contains(e.target)) return;
+      if (!inPane(pane, e.target)) return;
       if (isBlocked(e.target)) return;
 
       e.preventDefault();
-      if (e.type === "mouseup") goUpRef.current();
+      if (e.type === "mouseup") {
+        lastUsed = pane;
+        goUpRef.current();
+      }
     }
 
     document.addEventListener("keydown", handleKeyDown, true);
+    document.addEventListener("pointerdown", handlePointerDown, true);
     document.addEventListener("mousedown", handleMouse);
     document.addEventListener("mouseup", handleMouse);
     return () => {
+      listening.delete(pane);
+      if (lastUsed === pane) lastUsed = null;
       document.removeEventListener("keydown", handleKeyDown, true);
+      document.removeEventListener("pointerdown", handlePointerDown, true);
       document.removeEventListener("mousedown", handleMouse);
       document.removeEventListener("mouseup", handleMouse);
     };
-  }, [isActive, rootRef]);
+  }, [isActive, rootRef, primary]);
 }

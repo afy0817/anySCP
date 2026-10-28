@@ -14,7 +14,8 @@
     "newFile": "새 파일",
     "newFolder": "새 폴더",
     "enableSudo": "sudo 모드 켜기",
-    "disableSudo": "sudo 모드 끄기"
+    "disableSudo": "sudo 모드 끄기",
+    "goHome": "홈 폴더로 이동"
   },
   "dropZone": {
     "dropFiles": "파일을 놓아 업로드",
@@ -40,7 +41,9 @@
     },
     "contentsLabel": "폴더 내용",
     "dragCopy_other": "항목 {{count}}개 복사",
-    "dragMove_other": "항목 {{count}}개 이동 · ⌥ 누르면 복사"
+    "dragMove_other": "항목 {{count}}개 이동 · ⌥ 누르면 복사",
+    "dragUpload_other": "항목 {{count}}개 업로드",
+    "dragDownload_other": "항목 {{count}}개를 내 PC로 다운로드"
   },
   "menu": {
     "paste": "붙여넣기",
@@ -57,7 +60,11 @@
     "copyPresignedUrl": "미리 서명된 URL 복사",
     "copyPath": "경로 복사",
     "cut": "잘라내기",
-    "properties": "속성"
+    "properties": "속성",
+    "upload": "업로드",
+    "uploadItems": "항목 {{count}}개 업로드",
+    "downloadToLocal": "내 PC로 다운로드",
+    "downloadItemsToLocal": "항목 {{count}}개를 내 PC로 다운로드"
   },
   "deleteConfirm": {
     "titleFile": "파일 삭제",
@@ -152,5 +159,11 @@
   },
   "page": {
     "fallbackLabel": "파일 탐색기"
+  },
+  "local": {
+    "title": "내 PC",
+    "show": "내 PC 창 보기",
+    "hide": "내 PC 창 숨기기",
+    "resize": "창 크기 조절"
   }
 }
