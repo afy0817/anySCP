@@ -15,6 +15,7 @@ import { editorLaunchErrorMessage } from "../../lib/editor-errors";
 import { conflictingNames } from "../../lib/drop-conflicts";
 import { toast } from "../../stores/toast-store";
 import type { EditorConfig } from "../../stores/settings-store";
+import { useExplorerBackNavigation } from "../../hooks/use-explorer-back-navigation";
 
 interface ExplorerViewProps {
   /** The transport session id (sftp_session_id or scp_session_id). */
@@ -259,6 +260,17 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
     },
     [sessionId, transport, setLoading, setEntries, setError, t],
   );
+
+  // Mouse back button / back shortcuts go to the parent folder.
+  const rootRef = useRef<HTMLDivElement>(null);
+  useExplorerBackNavigation({
+    rootRef,
+    isActive,
+    provider,
+    currentPath: session?.currentPath ?? "/",
+    loading: session?.loading ?? false,
+    onNavigate: (path) => void loadDirectory(path),
+  });
 
   // ─── Sudo toggle (SFTP only) ──────────────────────────────────────────────
 
@@ -769,7 +781,7 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
   if (!session) return null;
 
   return (
-    <div className="flex flex-col h-full overflow-hidden relative">
+    <div ref={rootRef} className="flex flex-col h-full overflow-hidden relative">
       <ExplorerToolbar
         provider={provider}
         currentPath={session.currentPath}

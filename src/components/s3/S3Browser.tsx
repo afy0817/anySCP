@@ -9,6 +9,7 @@ import { createS3Provider, toS3ExplorerEntry } from "../../providers/s3-provider
 import { editorLaunchErrorMessage } from "../../lib/editor-errors";
 import { toast } from "../../stores/toast-store";
 import type { EditorConfig } from "../../stores/settings-store";
+import { useExplorerBackNavigation } from "../../hooks/use-explorer-back-navigation";
 
 interface S3BrowserProps {
   sessionId: string;
@@ -147,6 +148,18 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
       setError(sessionId, msg);
     }
   }, [sessionId, setLoading, setEntries, setError, t]);
+
+  // Mouse back button / back shortcuts go to the parent prefix. The bucket
+  // picker has nothing to go up to, so it doesn't listen.
+  const rootRef = useRef<HTMLDivElement>(null);
+  useExplorerBackNavigation({
+    rootRef,
+    isActive: isActive && !!session?.currentBucket,
+    provider,
+    currentPath: session?.currentPrefix ?? "",
+    loading: session?.loading ?? false,
+    onNavigate: (path) => void loadObjects(path),
+  });
 
   // Fetch the next page of the current prefix. Listings come back a page
   // (1000 keys) at a time so huge prefixes open instantly instead of the app
@@ -454,7 +467,7 @@ export function S3Browser({ sessionId, isActive = true }: S3BrowserProps) {
   // ─── Object browser view (using shared components) ────────────────────────
 
   return (
-    <div className="flex flex-col h-full overflow-hidden relative">
+    <div ref={rootRef} className="flex flex-col h-full overflow-hidden relative">
       <ExplorerToolbar
         provider={provider}
         currentPath={session.currentPrefix}
