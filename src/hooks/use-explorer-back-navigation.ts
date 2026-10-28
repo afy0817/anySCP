@@ -28,6 +28,8 @@ interface Pane {
 // on <body> after the listing re-rendered) goes to that pane, else the primary.
 const listening = new Set<Pane>();
 let lastUsed: Pane | null = null;
+// Where the pointer last was: native mouse-navigate events carry no position.
+let lastPointer: { x: number; y: number } | null = null;
 
 function keyboardOwner(): Pane | undefined {
   if (lastUsed && listening.has(lastUsed)) return lastUsed;
@@ -39,7 +41,8 @@ function keyboardOwner(): Pane | undefined {
  * Maps the platform "back" actions to "go to parent folder" in the explorer:
  * the mouse back button, the BrowserBack key, and Cmd+↑ / Cmd+← (macOS) or
  * Alt+↑ / Alt+← (Windows/Linux). Cmd+[ is left alone — it's the global
- * previous-tab shortcut.
+ * previous-tab shortcut. Mice whose side buttons arrive as macOS swipe
+ * gestures (Logitech) come in as the native `mouse-navigate` event instead.
  */
 export function useExplorerBackNavigation({
   rootRef,
@@ -103,7 +106,21 @@ export function useExplorerBackNavigation({
     }
 
     function handlePointerDown(e: PointerEvent) {
+      lastPointer = { x: e.clientX, y: e.clientY };
       if (inPane(pane, e.target)) lastUsed = pane;
+    }
+
+    function handlePointerMove(e: PointerEvent) {
+      lastPointer = { x: e.clientX, y: e.clientY };
+    }
+
+    // Native back (swipe-gesture side buttons): the pane under the pointer.
+    function handleNativeNavigate(direction: string) {
+      if (direction !== "back" || !lastPointer) return;
+      const target = document.elementFromPoint(lastPointer.x, lastPointer.y);
+      if (!inPane(pane, target) || isBlocked(target)) return;
+      lastUsed = pane;
+      goUpRef.current();
     }
 
     // Button 3 is the mouse "back" button (WKWebView reports it too). Cancel
@@ -121,15 +138,32 @@ export function useExplorerBackNavigation({
       }
     }
 
+    let aborted = false;
+    let unlisten: (() => void) | undefined;
+    (async () => {
+      try {
+        const { listen } = await import("@tauri-apps/api/event");
+        const unsub = await listen<string>("mouse-navigate", (e) => handleNativeNavigate(e.payload));
+        if (aborted) unsub();
+        else unlisten = unsub;
+      } catch {
+        // Not in Tauri context
+      }
+    })();
+
     document.addEventListener("keydown", handleKeyDown, true);
     document.addEventListener("pointerdown", handlePointerDown, true);
+    document.addEventListener("pointermove", handlePointerMove, { capture: true, passive: true });
     document.addEventListener("mousedown", handleMouse);
     document.addEventListener("mouseup", handleMouse);
     return () => {
+      aborted = true;
+      unlisten?.();
       listening.delete(pane);
       if (lastUsed === pane) lastUsed = null;
       document.removeEventListener("keydown", handleKeyDown, true);
       document.removeEventListener("pointerdown", handlePointerDown, true);
+      document.removeEventListener("pointermove", handlePointerMove, true);
       document.removeEventListener("mousedown", handleMouse);
       document.removeEventListener("mouseup", handleMouse);
     };

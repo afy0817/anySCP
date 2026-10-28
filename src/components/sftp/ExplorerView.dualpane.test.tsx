@@ -69,6 +69,7 @@ describe("ExplorerView — This PC pane", () => {
       return [];
     });
 
+    localStorage.clear();
     resetLocalExplorerInit();
     useLocalExplorerStore.setState({ visible: true, homeDir: "", currentPath: "", entries: [], error: null });
     useSftpStore.setState({ sessions: new Map(), activeSftpSessionId: null, clipboard: null });

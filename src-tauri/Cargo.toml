@@ -93,6 +93,11 @@ flate2 = "1"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 dirs = "6"
 
+# Mouse back/forward buttons that arrive as swipe gestures (see mouse_nav.rs).
+[target.'cfg(target_os = "macos")'.dependencies]
+block2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = ["std", "block2", "objc2-core-foundation", "NSEvent"] }
+
 [dev-dependencies]
 tempfile = "3"
 

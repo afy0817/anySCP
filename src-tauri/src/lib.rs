@@ -4,6 +4,8 @@ mod db;
 mod editors;
 mod import;
 mod local;
+#[cfg(target_os = "macos")]
+mod mouse_nav;
 mod portforward;
 mod s3;
 mod scp;
@@ -197,6 +199,9 @@ pub fn run() {
             app.manage(s3_transfer_manager);
 
             telemetry::init();
+
+            #[cfg(target_os = "macos")]
+            mouse_nav::install(app.handle().clone());
 
             Ok(())
         })

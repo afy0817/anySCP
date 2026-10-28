@@ -3,10 +3,12 @@ import i18n from "../i18n";
 import type { SftpEntry } from "../types";
 
 // State for the explorer's local "This PC" pane. One pane state is shared by
-// every explorer tab, so switching hosts keeps you in the same local folder.
+// every explorer tab, so switching hosts keeps you in the same local folder,
+// and the folder is remembered across launches.
 
 const VISIBLE_KEY = "anyscp.explorer.localPane.visible";
 const WIDTH_KEY = "anyscp.explorer.localPane.width";
+const PATH_KEY = "anyscp.explorer.localPane.path";
 
 /** Local pane width as a fraction of the explorer, kept within these bounds. */
 export const LOCAL_PANE_MIN = 0.2;
@@ -30,7 +32,8 @@ interface LocalExplorerState {
   setVisible: (visible: boolean) => void;
   setWidth: (width: number) => void;
   setSort: (sortBy: "name" | "size" | "modified", sortAsc: boolean) => void;
-  /** Resolve the home dir and list it, once. Later calls are no-ops. */
+  /** Reopen the last-used folder (else the home dir), once. Later calls are
+   *  no-ops. */
   init: () => Promise<void>;
   /** List `path` and make it the current folder. A leading `~` is the home dir. */
   load: (path: string) => Promise<void>;
@@ -106,6 +109,14 @@ export const useLocalExplorerStore = create<LocalExplorerState>((set, get) => ({
       // Fall back to the filesystem root below.
     }
     set({ homeDir: home });
+
+    // Last-used folder first; if it's gone (deleted, unmounted drive) its
+    // error is cleared by the home listing below.
+    const saved = readStored(PATH_KEY);
+    if (saved) {
+      await get().load(saved);
+      if (get().currentPath === saved) return;
+    }
     await get().load(home || "/");
   },
 
@@ -127,6 +138,7 @@ export const useLocalExplorerStore = create<LocalExplorerState>((set, get) => ({
         loading: false,
         error: null,
       });
+      writeStored(PATH_KEY, target);
     } catch (err) {
       if (seq !== loadSeq) return;
       set({ loading: false, error: errorMessage(err) });

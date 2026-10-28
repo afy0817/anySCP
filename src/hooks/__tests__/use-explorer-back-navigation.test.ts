@@ -1,5 +1,17 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { renderHook } from "@testing-library/react";
+
+// Capture the native `mouse-navigate` listeners each hook registers.
+const { nativeListeners } = vi.hoisted(() => ({
+  nativeListeners: new Set<(e: { payload: string }) => void>(),
+}));
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(async (_event: string, cb: (e: { payload: string }) => void) => {
+    nativeListeners.add(cb);
+    return () => nativeListeners.delete(cb);
+  }),
+}));
+
 import { useExplorerBackNavigation } from "../use-explorer-back-navigation";
 import { createSftpProvider } from "../../providers/sftp-provider";
 
@@ -27,6 +39,14 @@ function pressMouseBack(target: Element) {
   target.dispatchEvent(new MouseEvent("mouseup", { button: 3, bubbles: true, cancelable: true }));
 }
 
+/** Native swipe-gesture back/forward (Logitech side buttons) with the pointer over `target`. */
+async function nativeNavigate(target: Element, direction: "back" | "forward", listeners = 1) {
+  await vi.waitFor(() => expect(nativeListeners.size).toBe(listeners));
+  document.elementFromPoint = (() => target) as typeof document.elementFromPoint;
+  document.dispatchEvent(new MouseEvent("pointermove", { clientX: 5, clientY: 5 }));
+  for (const cb of [...nativeListeners]) cb({ payload: direction });
+}
+
 function pressKey(target: Element, init: KeyboardEventInit) {
   const e = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...init });
   target.dispatchEvent(e);
@@ -44,6 +64,7 @@ describe("useExplorerBackNavigation", () => {
 
   afterEach(() => {
     root.remove();
+    delete (document as { elementFromPoint?: unknown }).elementFromPoint;
   });
 
   it("goes to the parent folder on the mouse back button inside the explorer", () => {
@@ -120,6 +141,26 @@ describe("useExplorerBackNavigation", () => {
     expect(onNavigate).not.toHaveBeenCalled();
   });
 
+  it("goes up on a native swipe-gesture back over the pane", async () => {
+    setup();
+    await nativeNavigate(row, "back");
+    expect(onNavigate).toHaveBeenCalledWith("/home");
+  });
+
+  it("ignores native forward, and native back outside the pane", async () => {
+    setup();
+    await nativeNavigate(row, "forward");
+    await nativeNavigate(document.body, "back");
+    expect(onNavigate).not.toHaveBeenCalled();
+  });
+
+  it("stops listening for native back on unmount", async () => {
+    const { unmount } = setup();
+    await vi.waitFor(() => expect(nativeListeners.size).toBe(1));
+    unmount();
+    expect(nativeListeners.size).toBe(0);
+  });
+
   describe("with two panes on screen", () => {
     let otherRoot: HTMLDivElement;
     let otherRow: HTMLDivElement;
@@ -127,6 +168,10 @@ describe("useExplorerBackNavigation", () => {
 
     function setupBoth() {
       setup(); // `root` — not primary
+      return setupOther();
+    }
+
+    function setupOther() {
       return renderHook(() =>
         useExplorerBackNavigation({
           rootRef: { current: otherRoot },
@@ -157,6 +202,17 @@ describe("useExplorerBackNavigation", () => {
       pressMouseBack(row);
       expect(onNavigate).toHaveBeenCalledWith("/home");
       expect(otherNavigate).not.toHaveBeenCalled();
+    });
+
+    it("sends native swipe-gesture back to the pane under the pointer", async () => {
+      // Mount one at a time: vitest can hand two simultaneous dynamic imports
+      // of a mocked module the real one.
+      setup();
+      await vi.waitFor(() => expect(nativeListeners.size).toBe(1));
+      setupOther();
+      await nativeNavigate(otherRow, "back", 2);
+      expect(otherNavigate).toHaveBeenCalledWith("/srv");
+      expect(onNavigate).not.toHaveBeenCalled();
     });
 
     it("sends keyboard back to the focused pane", () => {
