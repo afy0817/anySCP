@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import type { SftpEntry } from "../../types";
 
 // ── Tauri module mocks (same set as ExplorerView.upload.test) ────────────────
@@ -159,5 +159,58 @@ describe("ExplorerView — This PC pane", () => {
 
     expect(container.querySelector('[data-explorer-pane="local"]')).toBeNull();
     expect(screen.queryByText("Download to This PC")).toBeNull();
+  });
+
+  it("hands unfocused keyboard back to the remote pane once This PC is hidden", async () => {
+    const { container } = render(<ExplorerView sessionId={SESSION_ID} />);
+    await screen.findByTestId("local-entry-a.txt");
+
+    // This PC was used last, so it takes back presses while shown.
+    fireEvent.pointerDown(container.querySelector('[data-explorer-pane="local"]')!);
+    fireEvent.keyDown(document.body, { key: "BrowserBack" });
+    await waitFor(() => expect(callsTo("local_list_dir")).toContainEqual(["local_list_dir", { path: "/Users" }]));
+    const localListings = callsTo("local_list_dir").length;
+
+    act(() => useLocalExplorerStore.getState().setVisible(false));
+    fireEvent.keyDown(document.body, { key: "BrowserBack" });
+
+    await waitFor(() =>
+      expect(callsTo("sftp_list_dir")).toContainEqual(["sftp_list_dir", { sftpSessionId: SESSION_ID, path: "/home" }]),
+    );
+    expect(callsTo("local_list_dir")).toHaveLength(localListings);
+  });
+
+  describe("in remote-only mode", () => {
+    beforeEach(() => {
+      useLocalExplorerStore.setState({ visible: false });
+    });
+
+    it("never lists local files", async () => {
+      render(<ExplorerView sessionId={SESSION_ID} />);
+      expect(await screen.findByTestId("explorer-entry-r.txt")).toBeInTheDocument();
+      expect(screen.queryByTestId("explorer-split-handle")).toBeNull();
+      expect(callsTo("local_home_dir")).toHaveLength(0);
+      expect(callsTo("local_list_dir")).toHaveLength(0);
+    });
+
+    it("sends unfocused keyboard back to the remote pane", async () => {
+      render(<ExplorerView sessionId={SESSION_ID} />);
+      await screen.findByTestId("explorer-entry-r.txt");
+
+      fireEvent.keyDown(document.body, { key: "BrowserBack" });
+
+      await waitFor(() =>
+        expect(callsTo("sftp_list_dir")).toContainEqual(["sftp_list_dir", { sftpSessionId: SESSION_ID, path: "/home" }]),
+      );
+    });
+
+    it("mounts This PC when switched back to split", async () => {
+      render(<ExplorerView sessionId={SESSION_ID} />);
+      await screen.findByTestId("explorer-entry-r.txt");
+
+      act(() => useLocalExplorerStore.getState().setVisible(true));
+
+      expect(await screen.findByTestId("local-entry-a.txt")).toBeInTheDocument();
+    });
   });
 });

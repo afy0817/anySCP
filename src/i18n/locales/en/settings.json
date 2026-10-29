@@ -127,6 +127,12 @@
     }
   },
   "explorer": {
+    "layout": {
+      "label": "Layout",
+      "description": "Whether the browser shows This PC beside the remote files (also switchable from the browser header)",
+      "split": "Split",
+      "remote": "Remote Only"
+    },
     "doubleClick": {
       "label": "Double-click a File",
       "description": "What happens when you double-click a file in the browser",

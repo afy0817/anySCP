@@ -4,6 +4,7 @@ import { LANGUAGES, type Language } from "../../i18n";
 import { ModalShell, BTN_GHOST, BTN_PRIMARY, BTN_DANGER } from "../shared/ModalShell";
 import { ModalBackdrop } from "../shared/ModalBackdrop";
 import { useSettingsStore } from "../../stores/settings-store";
+import { useLocalExplorerStore } from "../../stores/local-explorer-store";
 import { CustomSelect, type SelectOption } from "../shared/CustomSelect";
 import { useUpdaterStore } from "../../stores/updater-store";
 import { toast } from "../../stores/toast-store";
@@ -713,9 +714,27 @@ function ExplorerSettings() {
   const { t } = useTranslation("settings");
   const doubleClickAction = useSettingsStore((s) => s.explorerDoubleClickAction);
   const setDoubleClickAction = useSettingsStore((s) => s.setExplorerDoubleClickAction);
+  // Same flag as the This PC toggle in the explorer header.
+  const showLocal = useLocalExplorerStore((s) => s.visible);
+  const setShowLocal = useLocalExplorerStore((s) => s.setVisible);
 
   return (
     <SettingsGroup>
+      <SettingRow>
+        <div>
+          <p className={LABEL_CLASS}>{t("explorer.layout.label")}</p>
+          <p className={DESC_CLASS}>{t("explorer.layout.description")}</p>
+        </div>
+        <SegmentedControl<"split" | "remote">
+          id="s-explorerlayout"
+          value={showLocal ? "split" : "remote"}
+          onChange={(layout) => setShowLocal(layout === "split")}
+          options={[
+            { value: "split", label: t("explorer.layout.split") },
+            { value: "remote", label: t("explorer.layout.remote") },
+          ]}
+        />
+      </SettingRow>
       <SettingRow>
         <div>
           <p className={LABEL_CLASS}>{t("explorer.doubleClick.label")}</p>

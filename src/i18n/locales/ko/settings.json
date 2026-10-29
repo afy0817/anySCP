@@ -127,6 +127,12 @@
     }
   },
   "explorer": {
+    "layout": {
+      "label": "화면 구성",
+      "description": "파일 탐색기에서 내 PC 창을 원격 창 옆에 함께 보여줄지 여부 (탐색기 위쪽 버튼으로도 전환)",
+      "split": "분할",
+      "remote": "원격만"
+    },
     "doubleClick": {
       "label": "파일 더블클릭",
       "description": "파일 탐색기에서 파일을 더블클릭했을 때의 동작",
