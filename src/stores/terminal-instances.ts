@@ -193,6 +193,11 @@ function createEntry(sessionId: string): TerminalEntry {
     if (e.metaKey && e.shiftKey && e.key === "Enter") return false;
     if (e.metaKey && e.altKey && ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key))
       return false;
+    // xterm sends nothing for Cmd+←/→; map them to line start / end (Ctrl+A / Ctrl+E).
+    if (e.metaKey && !e.altKey && !e.shiftKey && !e.ctrlKey && (e.key === "ArrowLeft" || e.key === "ArrowRight")) {
+      if (e.type === "keydown") term.input(e.key === "ArrowLeft" ? "\x01" : "\x05");
+      return false;
+    }
     return true;
   });
 
