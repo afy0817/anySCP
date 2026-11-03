@@ -1,0 +1,200 @@
+# Korean fork: Windows / Linux builds. Push a `ko-v*` tag to build and publish a
+# GitHub release with the .deb and the Windows installer — plain `v*` tags would
+# trigger the upstream release workflow. Every run also keeps the files as
+# run artifacts.
+#
+# Windows code signing (SignPath Foundation, free for open source): only when the
+# repo has the secret SIGNPATH_API_TOKEN and the variable SIGNPATH_ORGANIZATION_ID;
+# without them the build is unsigned. Two signing requests per run, each approved
+# in SignPath: 1) anyscp.exe  2) the NSIS installer that contains it. Their
+# SignPath artifact configurations are .signpath/artifact-configurations/*.xml.
+name: ko build (Windows / Linux)
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "ko-v*"
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    runs-on: ubuntu-22.04
+    name: Build — linux-x64
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libappindicator3-dev \
+            librsvg2-dev \
+            patchelf \
+            libsoup-3.0-dev \
+            javascriptcoregtk-4.1-dev
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm tauri build --bundles deb,appimage
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anySCP-ko-linux-x64
+          path: |
+            src-tauri/target/release/bundle/deb/*.deb
+            src-tauri/target/release/bundle/appimage/*.AppImage
+          if-no-files-found: error
+
+  windows:
+    runs-on: windows-latest
+    name: Build — windows-x64
+    permissions:
+      contents: read
+      actions: read # SignPath reads this run's artifacts
+    env:
+      SIGN: ${{ secrets.SIGNPATH_API_TOKEN != '' && vars.SIGNPATH_ORGANIZATION_ID != '' }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+
+      - name: Version
+        run: |
+          VERSION="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "sign: $SIGN"
+
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The app binary alone first, so it is signed before it goes into the installer.
+      - name: Build anyscp.exe
+        run: pnpm tauri build --no-bundle
+
+      # ---- signing 1: anyscp.exe (only with SignPath set up)
+      - name: Prepare anyscp.exe for signing
+        if: env.SIGN == 'true'
+        run: mkdir -p build/sign1 && cp src-tauri/target/release/anyscp.exe build/sign1/anyscp.exe
+      - name: Upload unsigned anyscp.exe
+        id: unsigned1
+        if: env.SIGN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-binaries
+          path: build/sign1/
+      - name: Sign anyscp.exe (SignPath — approve the request)
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'anySCP' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: binaries
+          github-artifact-id: ${{ steps.unsigned1.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600 # waits for the approval
+          output-artifact-directory: build/signed1
+          parameters: |
+            version: "${{ env.VERSION }}"
+      - name: Use signed anyscp.exe
+        if: env.SIGN == 'true'
+        run: cp build/signed1/anyscp.exe src-tauri/target/release/anyscp.exe
+
+      - name: Build installer (NSIS)
+        run: |
+          pnpm tauri bundle --bundles nsis
+          SETUP="$(ls src-tauri/target/release/bundle/nsis/*-setup.exe)"
+          echo "SETUP=$SETUP" >> "$GITHUB_ENV"
+
+      # ---- signing 2: the installer
+      - name: Prepare installer for signing
+        if: env.SIGN == 'true'
+        run: mkdir -p build/sign2 && cp "$SETUP" build/sign2/setup.exe
+      - name: Upload unsigned installer
+        id: unsigned2
+        if: env.SIGN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-installer
+          path: build/sign2/
+      - name: Sign installer (SignPath — approve the request)
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG || 'anySCP' }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG || 'release-signing' }}
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.unsigned2.outputs.artifact-id }}
+          wait-for-completion: true
+          wait-for-completion-timeout-in-seconds: 3600
+          output-artifact-directory: build/signed2
+          parameters: |
+            version: "${{ env.VERSION }}"
+      - name: Use signed installer
+        if: env.SIGN == 'true'
+        run: cp build/signed2/setup.exe "$SETUP"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anySCP-ko-windows-x64
+          path: src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/ko-v')
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          pattern: anySCP-ko-* # not the unsigned-* signing inputs
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/**/*.deb
+            dist/**/*-setup.exe
+          fail_on_unmatched_files: true

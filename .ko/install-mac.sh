@@ -1,5 +1,5 @@
 #!/bin/zsh
-# 한국어 포크를 빌드해서 /Applications/anySCP.app 을 교체한다.
+# macOS: 한국어 포크를 빌드해서 /Applications/anySCP.app 을 교체한다.
 set -euo pipefail
 cd "${0:A:h}/.."
 
