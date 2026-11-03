@@ -290,6 +290,9 @@ pub fn run() {
             db::commands::reorder_groups,
             db::commands::delete_group,
             db::commands::delete_group_with_hosts,
+            db::commands::move_group,
+            db::commands::move_host_to_group,
+            db::commands::move_s3_to_group,
             // Connection history
             db::commands::record_connection,
             db::commands::list_recent_connections,

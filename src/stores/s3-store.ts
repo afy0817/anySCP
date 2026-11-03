@@ -24,6 +24,9 @@ interface S3State {
   connections: S3Connection[];
   loadConnections: () => Promise<void>;
   reorderConnections: (newOrder: S3Connection[]) => Promise<void>;
+  /** Move a connection into `groupId` (`null` = top level), optionally applying
+   *  `newOrder` in the same step. */
+  moveConnection: (id: string, groupId: string | null, newOrder?: S3Connection[]) => Promise<void>;
 
   openSession: (sessionId: string, label: string) => void;
   closeSession: (sessionId: string) => void;
@@ -169,6 +172,21 @@ export const useS3Store = create<S3State>((set, get) => ({
       await invoke("reorder_s3_connections", { orderedIds: newOrder.map((c) => c.id) });
     } catch (err) {
       set({ connections: previous });
+      throw err;
+    }
+  },
+
+  // Optimistic like reorderConnections, but the move and the reorder are two
+  // backend writes, so on failure reload what actually got stored.
+  moveConnection: async (id, groupId, newOrder) => {
+    const base = newOrder ?? get().connections;
+    set({ connections: base.map((c) => (c.id === id ? { ...c, group_id: groupId } : c)) });
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("move_s3_to_group", { id, groupId });
+      if (newOrder) await invoke("reorder_s3_connections", { orderedIds: newOrder.map((c) => c.id) });
+    } catch (err) {
+      await get().loadConnections();
       throw err;
     }
   },

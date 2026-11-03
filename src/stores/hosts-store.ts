@@ -15,6 +15,9 @@ interface HostsState {
   duplicateHost: (id: string) => Promise<DuplicateOutcome>;
   deleteHost: (id: string) => Promise<void>;
   reorderHosts: (newOrder: SavedHost[]) => Promise<void>;
+  /** Move a host into `groupId` (`null` = top level), optionally applying
+   *  `newOrder` in the same step. */
+  moveHost: (id: string, groupId: string | null, newOrder?: SavedHost[]) => Promise<void>;
   loadRecent: () => Promise<void>;
   recordConnection: (hostId: string) => Promise<void>;
 }
@@ -104,6 +107,21 @@ export const useHostsStore = create<HostsState>((set, get) => ({
       await invoke("reorder_hosts", { orderedIds: newOrder.map((h) => h.id) });
     } catch (err) {
       set({ hosts: previous });
+      throw err;
+    }
+  },
+
+  // Optimistic like reorderHosts, but the move and the reorder are two backend
+  // writes, so on failure reload what actually got stored.
+  moveHost: async (id, groupId, newOrder) => {
+    const base = newOrder ?? get().hosts;
+    set({ hosts: base.map((h) => (h.id === id ? { ...h, group_id: groupId } : h)) });
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("move_host_to_group", { id, groupId });
+      if (newOrder) await invoke("reorder_hosts", { orderedIds: newOrder.map((h) => h.id) });
+    } catch (err) {
+      await get().loadHosts();
       throw err;
     }
   },

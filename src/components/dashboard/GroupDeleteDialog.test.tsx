@@ -18,12 +18,13 @@ const group: HostGroup = {
   default_username: null,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
+  parent_id: null,
 };
 
 describe("GroupDeleteDialog", () => {
   it("confirms with deleteHosts=true only when the cascade box is checked", () => {
     const onConfirm = vi.fn();
-    render(<GroupDeleteDialog group={group} hostCount={2} onConfirm={onConfirm} onCancel={vi.fn()} />);
+    render(<GroupDeleteDialog group={group} hostCount={2} subgroupCount={0} onConfirm={onConfirm} onCancel={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("checkbox"));
     fireEvent.click(screen.getByRole("button", { name: /delete group & hosts/i }));
@@ -33,7 +34,7 @@ describe("GroupDeleteDialog", () => {
 
   it("confirms with deleteHosts=false when the box is left unchecked (hosts kept)", () => {
     const onConfirm = vi.fn();
-    render(<GroupDeleteDialog group={group} hostCount={2} onConfirm={onConfirm} onCancel={vi.fn()} />);
+    render(<GroupDeleteDialog group={group} hostCount={2} subgroupCount={0} onConfirm={onConfirm} onCancel={vi.fn()} />);
 
     fireEvent.click(screen.getByRole("button", { name: /^delete group$/i }));
 

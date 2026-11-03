@@ -183,8 +183,8 @@ pub async fn list_groups(state: State<'_, Arc<HostDb>>) -> Result<Vec<HostGroup>
         .map_err(|e| DbError::InitError(format!("task panicked: {e}")))?
 }
 
-/// Permanently delete a host group.  Member hosts are orphaned (their
-/// `group_id` is set to NULL) rather than deleted.
+/// Permanently delete a host group.  Its subgroups, hosts and S3 connections
+/// move up to the deleted group's parent rather than being deleted.
 #[tauri::command]
 #[instrument(skip(state), fields(id = %id))]
 pub async fn delete_group(id: String, state: State<'_, Arc<HostDb>>) -> Result<(), DbError> {
@@ -194,29 +194,42 @@ pub async fn delete_group(id: String, state: State<'_, Arc<HostDb>>) -> Result<(
         .map_err(|e| DbError::InitError(format!("task panicked: {e}")))?
 }
 
-/// Delete a host group AND all hosts inside it.
+/// Delete a host group, its subgroups, AND all hosts and S3 connections
+/// inside any of them.
 #[tauri::command]
-#[instrument(skip(state), fields(id = %id))]
+#[instrument(skip(state, s3_manager), fields(id = %id))]
 pub async fn delete_group_with_hosts(
     id: String,
     state: State<'_, Arc<HostDb>>,
+    s3_manager: State<'_, Arc<crate::s3::S3Manager>>,
 ) -> Result<(), DbError> {
     let db = Arc::clone(&state);
-    let host_ids = task::spawn_blocking(move || db.delete_group_with_hosts(&id))
+    let keys = task::spawn_blocking(move || db.delete_group_with_hosts(&id))
         .await
         .map_err(|e| DbError::InitError(format!("task panicked: {e}")))??;
 
-    // Purge each deleted host's keychain secret — the DB cascade only removed
+    // Same as s3_delete_connection: drop live clients of deleted connections.
+    for s3_id in &keys.s3_ids {
+        s3_manager.disconnect(s3_id);
+    }
+
+    // Purge each deleted row's keychain secret — the DB cascade only removed
     // the rows. Same best-effort loop as factory_reset: a missing entry is fine,
     // and one bad key shouldn't abort the rest.
-    if !host_ids.is_empty() {
+    if !keys.host_ids.is_empty() || !keys.s3_ids.is_empty() {
         // Ignore a panicked purge task rather than failing the command: the rows
         // are already gone, and returning `Err` here would stop the frontend
         // reloading, leaving deleted hosts on screen. Matches `delete_host`.
         if task::spawn_blocking(move || {
-            for host_id in &host_ids {
+            for host_id in &keys.host_ids {
                 if let Err(e) = crate::vault::delete_credential(host_id) {
                     tracing::warn!(host_id = %host_id, error = %e, "delete_group_with_hosts: keychain purge failed (secret orphaned)");
+                }
+            }
+            for s3_id in &keys.s3_ids {
+                let key = format!("s3:{s3_id}");
+                if let Err(e) = crate::vault::delete_credential(&key) {
+                    tracing::warn!(key = %key, error = %e, "delete_group_with_hosts: keychain purge failed (secret orphaned)");
                 }
             }
         })
@@ -227,6 +240,48 @@ pub async fn delete_group_with_hosts(
         }
     }
     Ok(())
+}
+
+/// Move a host group under another group (`None` = top level).
+#[tauri::command]
+#[instrument(skip(state), fields(id = %id))]
+pub async fn move_group(
+    id: String,
+    parent_id: Option<String>,
+    state: State<'_, Arc<HostDb>>,
+) -> Result<(), DbError> {
+    let db = Arc::clone(&state);
+    task::spawn_blocking(move || db.set_group_parent(&id, parent_id.as_deref()))
+        .await
+        .map_err(|e| DbError::InitError(format!("task panicked: {e}")))?
+}
+
+/// Move a saved host into a group (`None` = top level).
+#[tauri::command]
+#[instrument(skip(state), fields(id = %id))]
+pub async fn move_host_to_group(
+    id: String,
+    group_id: Option<String>,
+    state: State<'_, Arc<HostDb>>,
+) -> Result<(), DbError> {
+    let db = Arc::clone(&state);
+    task::spawn_blocking(move || db.set_host_group(&id, group_id.as_deref()))
+        .await
+        .map_err(|e| DbError::InitError(format!("task panicked: {e}")))?
+}
+
+/// Move an S3 connection into a group (`None` = top level).
+#[tauri::command]
+#[instrument(skip(state), fields(id = %id))]
+pub async fn move_s3_to_group(
+    id: String,
+    group_id: Option<String>,
+    state: State<'_, Arc<HostDb>>,
+) -> Result<(), DbError> {
+    let db = Arc::clone(&state);
+    task::spawn_blocking(move || db.set_s3_group(&id, group_id.as_deref()))
+        .await
+        .map_err(|e| DbError::InitError(format!("task panicked: {e}")))?
 }
 
 /// Record a successful connection for the given host id.  Also prunes the

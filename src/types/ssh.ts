@@ -50,6 +50,8 @@ export interface HostGroup {
   default_username: string | null;
   created_at: string;
   updated_at: string;
+  /** Enclosing group; `null` for a top-level group. */
+  parent_id: string | null;
 }
 
 export interface SavedHost {

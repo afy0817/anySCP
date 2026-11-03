@@ -6,23 +6,7 @@ import {
   useMemo,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Search, Plus, ArrowLeft, FolderPlus, Import, Cloud } from "lucide-react";
-import {
-  DndContext,
-  closestCenter,
-  MouseSensor,
-  TouchSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  rectSortingStrategy,
-  arrayMove,
-  sortableKeyboardCoordinates,
-} from "@dnd-kit/sortable";
+import { Search, Plus, FolderPlus, Import, Cloud } from "lucide-react";
 import { ImportSshConfigModal } from "./ImportSshConfigModal";
 import { S3ConnectDialog } from "../s3/S3ConnectDialog";
 import { useHostsStore } from "../../stores/hosts-store";
@@ -32,11 +16,10 @@ import { useUiStore } from "../../stores/ui-store";
 import { useTabStore } from "../../stores/tab-store";
 import { useSftpStore } from "../../stores/sftp-store";
 import { useS3Store } from "../../stores/s3-store";
+import { useHostBrowserStore } from "../../stores/host-browser-store";
 import type { SavedHost, HostGroup, RecentConnection, S3Connection } from "../../types";
-import { HostCard } from "./HostCard";
-import { GroupCard } from "./GroupCard";
-import { S3Card } from "./S3Card";
-import { SortableCard } from "./SortableCard";
+import { buildGroupTree, folderOf, subtreeIds } from "../../lib/host-tree";
+import { HostBrowser } from "./HostBrowser";
 import { GroupDeleteDialog } from "./GroupDeleteDialog";
 import { GroupModal } from "./GroupModal";
 import { ConnectionDialog } from "./ConnectionDialog";
@@ -60,16 +43,20 @@ async function cancelConnectAttempt(attemptId: string) {
 
 export function HostsDashboard() {
   const { t } = useTranslation("dashboard");
-  const { hosts, loadHosts, recentConnections, loadRecent, duplicateHost, deleteHost, reorderHosts } =
+  const { hosts, loadHosts, recentConnections, loadRecent, duplicateHost, deleteHost } =
     useHostsStore();
-  const { groups, loadGroups, createGroup, deleteGroup, reorderGroups } = useGroupsStore();
+  const { groups, loadGroups, createGroup, deleteGroup } = useGroupsStore();
   const setEditingHostId = useUiStore((s) => s.setEditingHostId);
+  const viewMode = useHostBrowserStore((s) => s.viewMode);
+  const openFolderId = useHostBrowserStore((s) => s.folderId);
+  const setOpenFolderId = useHostBrowserStore((s) => s.setFolderId);
 
   const [query, setQuery] = useState("");
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
 
   // Group modal state
   const [groupModalOpen, setGroupModalOpen] = useState(false);
+  // Group the new group goes under (`null` = top level).
+  const [newGroupParentId, setNewGroupParentId] = useState<string | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [s3DialogOpen, setS3DialogOpen] = useState(false);
 
@@ -77,6 +64,7 @@ export function HostsDashboard() {
   const [deletingGroup, setDeletingGroup] = useState<{
     group: HostGroup;
     hostCount: number;
+    subgroupCount: number;
   } | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -84,7 +72,6 @@ export function HostsDashboard() {
   // S3 connections
   const s3Connections = useS3Store((s) => s.connections);
   const loadS3Connections = useS3Store((s) => s.loadConnections);
-  const reorderS3Connections = useS3Store((s) => s.reorderConnections);
 
   const [editingS3Connection, setEditingS3Connection] = useState<S3Connection | null>(null);
 
@@ -141,64 +128,7 @@ export function HostsDashboard() {
 
   // ─── Derived data ─────────────────────────────────────────────────────────
 
-  const hostCountByGroup = useMemo<Record<string, number>>(() => {
-    const counts: Record<string, number> = {};
-    for (const host of hosts) {
-      if (host.group_id) {
-        counts[host.group_id] = (counts[host.group_id] ?? 0) + 1;
-      }
-    }
-    for (const conn of s3Connections) {
-      if (conn.group_id) {
-        counts[conn.group_id] = (counts[conn.group_id] ?? 0) + 1;
-      }
-    }
-    return counts;
-  }, [hosts, s3Connections]);
-
-  const filteredHosts = useMemo<SavedHost[]>(() => {
-    let result = hosts;
-
-    // Group filter
-    if (selectedGroupId !== null) {
-      result = result.filter((h) => h.group_id === selectedGroupId);
-    }
-
-    // Search filter
-    const q = query.trim().toLowerCase();
-    if (q) {
-      result = result.filter(
-        (h) =>
-          h.host.toLowerCase().includes(q) ||
-          h.label.toLowerCase().includes(q) ||
-          h.username.toLowerCase().includes(q),
-      );
-    }
-
-    return result;
-  }, [hosts, selectedGroupId, query]);
-
-  const filteredS3 = useMemo<S3Connection[]>(() => {
-    let result = s3Connections;
-
-    // Group filter
-    if (selectedGroupId !== null) {
-      result = result.filter((c) => c.group_id === selectedGroupId);
-    }
-
-    // Search filter
-    const q = query.trim().toLowerCase();
-    if (q) {
-      result = result.filter(
-        (c) =>
-          c.label.toLowerCase().includes(q) ||
-          c.provider.toLowerCase().includes(q) ||
-          (c.bucket?.toLowerCase().includes(q) ?? false),
-      );
-    }
-
-    return result;
-  }, [s3Connections, selectedGroupId, query]);
+  const groupTree = useMemo(() => buildGroupTree(groups), [groups]);
 
   // ─── Connect handlers ──────────────────────────────────────────────────────
 
@@ -399,107 +329,24 @@ export function HostsDashboard() {
     [duplicateHost, t],
   );
 
-  // ─── Drag-and-drop reordering ────────────────────────────────────────────────
-
-  // The whole card is the drag surface, so a drag must only begin on a
-  // deliberate gesture — otherwise every click-to-connect would be a drag.
-  // Mouse: require a 5px move. Touch: require a 250ms press (with 5px slop) so a
-  // tap connects and a scroll still scrolls. Keyboard: focus a card and use the
-  // arrow keys (Space/Enter to pick up and drop) — accessible reordering.
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
-  );
-
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const oldIndex = filteredHosts.findIndex((h) => h.id === active.id);
-      const newIndex = filteredHosts.findIndex((h) => h.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      // Reorder within the currently visible subset, then splice that new order
-      // back into the full host list — hosts hidden by a group/search filter keep
-      // their positions. This keeps the persisted global order self-consistent
-      // even when the user reorders inside a filtered view.
-      const reorderedVisible = arrayMove(filteredHosts, oldIndex, newIndex);
-      const visibleIds = new Set(filteredHosts.map((h) => h.id));
-      let cursor = 0;
-      const newFullOrder = hosts.map((h) =>
-        visibleIds.has(h.id) ? reorderedVisible[cursor++] : h,
-      );
-
-      void reorderHosts(newFullOrder).catch(() => {
-        toast.error(t("hostsPage.toasts.hostOrderFailed"));
-      });
-    },
-    [filteredHosts, hosts, reorderHosts, t],
-  );
-
-  // Reorder the group cards themselves. This is a separate DnD layer from the
-  // host reordering above (its own DndContext over the Groups grid), so the two
-  // never interfere. `groups` is never filtered, so a plain arrayMove suffices.
-  const handleGroupDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const oldIndex = groups.findIndex((g) => g.id === active.id);
-      const newIndex = groups.findIndex((g) => g.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const newOrder = arrayMove(groups, oldIndex, newIndex);
-      void reorderGroups(newOrder).catch(() => {
-        toast.error(t("hostsPage.toasts.groupOrderFailed"));
-      });
-    },
-    [groups, reorderGroups, t],
-  );
-
-  // Reorder the S3 connection cards. Its own DndContext over the Cloud Storage
-  // grid. Like the host handler, we reorder the visible subset then splice it
-  // back into the full list so connections hidden by a group/search filter keep
-  // their positions; the s3-store applies the optimistic update + rollback.
-  const handleS3DragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
-      if (!over || active.id === over.id) return;
-
-      const oldIndex = filteredS3.findIndex((c) => c.id === active.id);
-      const newIndex = filteredS3.findIndex((c) => c.id === over.id);
-      if (oldIndex === -1 || newIndex === -1) return;
-
-      const reorderedVisible = arrayMove(filteredS3, oldIndex, newIndex);
-      const visibleIds = new Set(filteredS3.map((c) => c.id));
-      let cursor = 0;
-      const newFullOrder = s3Connections.map((c) =>
-        visibleIds.has(c.id) ? reorderedVisible[cursor++] : c,
-      );
-
-      void reorderS3Connections(newFullOrder).catch(() => {
-        toast.error(t("hostsPage.toasts.s3OrderFailed"));
-      });
-    },
-    [filteredS3, s3Connections, reorderS3Connections, t],
-  );
-
   // ─── Group handlers ────────────────────────────────────────────────────────
-
-  const handleGroupSelect = (groupId: string) => {
-    setSelectedGroupId((prev) => (prev === groupId ? null : groupId));
-  };
 
   const handleGroupDeleteRequest = useCallback(
     (groupId: string) => {
       const group = groups.find((g) => g.id === groupId);
       if (!group) return;
-      const hostCount = hostCountByGroup[groupId] ?? 0;
-      setDeletingGroup({ group, hostCount });
+      // Everything in the group's whole subtree goes with a cascade delete.
+      const ids = subtreeIds(groupTree, groupId);
+      const inSubtree = (id: string | null) => {
+        const folder = folderOf(id, groupTree.byId);
+        return folder !== null && ids.has(folder);
+      };
+      const hostCount =
+        hosts.filter((h) => inSubtree(h.group_id)).length +
+        s3Connections.filter((c) => inSubtree(c.group_id)).length;
+      setDeletingGroup({ group, hostCount, subgroupCount: ids.size - 1 });
     },
-    [groups, hostCountByGroup],
+    [groups, groupTree, hosts, s3Connections],
   );
 
   const handleGroupDeleteConfirm = useCallback(
@@ -507,22 +354,24 @@ export function HostsDashboard() {
       if (!deletingGroup) return;
       const { group } = deletingGroup;
 
+      // Groups that disappear: the whole subtree on a cascade, else just this one.
+      const removed = deleteHosts ? subtreeIds(groupTree, group.id) : new Set([group.id]);
       try {
         if (deleteHosts) {
           const { invoke } = await import("@tauri-apps/api/core");
           await invoke("delete_group_with_hosts", { id: group.id });
-          // Reload both hosts and groups
-          await Promise.all([loadHosts(), loadGroups()]);
+          // Reload hosts, groups and S3 connections — the cascade removes all three
+          await Promise.all([loadHosts(), loadGroups(), loadS3Connections()]);
         } else {
           await deleteGroup(group.id);
-          // deleteGroup reloads groups; reload hosts too since their group_id may change
-          await loadHosts();
+          // deleteGroup reloads groups; hosts and S3 connections moved up a level
+          await Promise.all([loadHosts(), loadS3Connections()]);
         }
-        // Only on success: if the deleted group was selected, clear the filter.
-        // Clearing it in `finally` reset the sidebar to all hosts even when the
-        // delete had failed and the group was still there.
-        if (selectedGroupId === group.id) {
-          setSelectedGroupId(null);
+        // Only on success: if folder view had a removed group open, step out to
+        // the deleted group's parent. Doing it in `finally` moved the view even
+        // when the delete had failed and the group was still there.
+        if (openFolderId !== null && removed.has(openFolderId)) {
+          setOpenFolderId(folderOf(group.parent_id, groupTree.byId));
         }
       } catch {
         // Without this the dialog just closed: no reload, nothing shown, and an
@@ -532,7 +381,7 @@ export function HostsDashboard() {
         setDeletingGroup(null);
       }
     },
-    [deletingGroup, deleteGroup, loadHosts, loadGroups, selectedGroupId, t],
+    [deletingGroup, deleteGroup, loadHosts, loadGroups, loadS3Connections, groupTree, openFolderId, setOpenFolderId, t],
   );
 
   const handleCreateGroup = async (data: { name: string; color: string; icon: string }) => {
@@ -546,15 +395,15 @@ export function HostsDashboard() {
       default_username: null,
       created_at: now,
       updated_at: now,
+      parent_id: newGroupParentId,
     });
     setGroupModalOpen(false);
   };
 
-  // ─── Active group label (breadcrumb) ──────────────────────────────────────
-
-  const activeGroup = selectedGroupId
-    ? groups.find((g) => g.id === selectedGroupId)
-    : null;
+  const openNewGroup = (parentId: string | null) => {
+    setNewGroupParentId(parentId);
+    setGroupModalOpen(true);
+  };
 
   // ─── Render ────────────────────────────────────────────────────────────────
 
@@ -641,7 +490,10 @@ export function HostsDashboard() {
 
             <button
               data-testid="new-group-button"
-              onClick={() => setGroupModalOpen(true)}
+              // Folder view creates the group inside the open one.
+              onClick={() =>
+                openNewGroup(viewMode === "folder" ? folderOf(openFolderId, groupTree.byId) : null)
+              }
               className={[
                 "flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-medium uppercase tracking-wide",
                 "bg-bg-surface border border-border text-text-secondary",
@@ -672,140 +524,33 @@ export function HostsDashboard() {
             </button>
           </div>
 
-          {/* ── Groups section ── */}
-          {groups.length > 0 && (
-            <section aria-labelledby="groups-heading">
-              <h2
-                id="groups-heading"
-                className="text-[length:var(--text-xs)] font-semibold uppercase tracking-widest text-text-muted mb-3"
-              >
-                {t("hostsPage.groupsHeading")}
-              </h2>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleGroupDragEnd}
-              >
-                <SortableContext
-                  items={groups.map((g) => g.id)}
-                  strategy={rectSortingStrategy}
-                >
-                  <div className="grid grid-cols-3 gap-2.5">
-                    {groups.map((group) => (
-                      <SortableCard key={group.id} id={group.id}>
-                        <GroupCard
-                          group={group}
-                          hostCount={hostCountByGroup[group.id] ?? 0}
-                          isSelected={selectedGroupId === group.id}
-                          onSelect={handleGroupSelect}
-                          onDelete={handleGroupDeleteRequest}
-                        />
-                      </SortableCard>
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            </section>
-          )}
-
-          {/* ── Hosts section ── */}
-          <section aria-labelledby="hosts-heading">
-            <div className="flex items-center gap-3 mb-3">
-              {/* Breadcrumb back button when a group is selected */}
-              {activeGroup && (
-                <button
-                  onClick={() => setSelectedGroupId(null)}
-                  className={[
-                    "flex items-center gap-1.5 text-[length:var(--text-xs)] text-text-muted",
-                    "hover:text-text-secondary transition-colors duration-[var(--duration-fast)]",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded",
-                  ].join(" ")}
-                  aria-label={t("hostsPage.backToAllHosts")}
-                >
-                  <ArrowLeft size={13} strokeWidth={2.2} aria-hidden="true" />
-                  {t("hostsPage.allHosts")}
-                </button>
-              )}
-
-              <h2
-                id="hosts-heading"
-                className="text-[length:var(--text-xs)] font-semibold uppercase tracking-widest text-text-muted"
-              >
-                {activeGroup ? activeGroup.name : t("hostsPage.hostsHeading")}
-              </h2>
-            </div>
-
-            {/* Host grid or empty state */}
-            {filteredHosts.length > 0 ? (
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext
-                  items={filteredHosts.map((h) => h.id)}
-                  strategy={rectSortingStrategy}
-                >
-                  <div className="grid grid-cols-3 gap-2.5">
-                    {filteredHosts.map((host) => (
-                      <SortableCard key={host.id} id={host.id}>
-                        <HostCard
-                          host={host}
-                          onConnect={(h) => void connectToHost(h)}
-                          onExplore={(h) => void exploreHost(h)}
-                          onEdit={setEditingHostId}
-                          onDelete={(id) => void handleDeleteHost(id)}
-                          onDuplicate={(h) => void handleDuplicateHost(h)}
-                        />
-                      </SortableCard>
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            ) : (
+          {/* ── Groups, hosts and S3 connections ── */}
+          <HostBrowser
+            hosts={hosts}
+            groups={groups}
+            s3Connections={s3Connections}
+            query={query}
+            renderEmpty={(inGroup) => (
               <EmptyHostsState
                 query={query}
-                hasHosts={hosts.length > 0}
-                groupFiltered={selectedGroupId !== null}
+                hasHosts={hosts.length + s3Connections.length > 0}
+                groupFiltered={inGroup}
               />
             )}
-          </section>
-
-          {/* ── S3 connections section ── */}
-          {filteredS3.length > 0 && (
-            <section aria-labelledby="s3-heading">
-              <h2
-                id="s3-heading"
-                className="text-[length:var(--text-xs)] font-semibold uppercase tracking-widest text-text-muted mb-3"
-              >
-                {t("hostsPage.cloudStorageHeading")}
-              </h2>
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleS3DragEnd}
-              >
-                <SortableContext
-                  items={filteredS3.map((c) => c.id)}
-                  strategy={rectSortingStrategy}
-                >
-                  <div className="grid grid-cols-3 gap-2.5">
-                    {filteredS3.map((conn) => (
-                      <SortableCard key={conn.id} id={conn.id}>
-                        <S3Card
-                          conn={conn}
-                          onConnect={(c) => void handleS3Connect(c)}
-                          onEdit={(c) => setEditingS3Connection(c)}
-                          onDuplicate={(c) => void handleS3Duplicate(c)}
-                          onDelete={(c) => void handleS3Delete(c)}
-                        />
-                      </SortableCard>
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-            </section>
-          )}
+            actions={{
+              onConnect: (h) => void connectToHost(h),
+              onExplore: (h) => void exploreHost(h),
+              onEdit: setEditingHostId,
+              onDelete: (id) => void handleDeleteHost(id),
+              onDuplicate: (h) => void handleDuplicateHost(h),
+              onS3Connect: (c) => void handleS3Connect(c),
+              onS3Edit: (c) => setEditingS3Connection(c),
+              onS3Duplicate: (c) => void handleS3Duplicate(c),
+              onS3Delete: (c) => void handleS3Delete(c),
+              onGroupDelete: handleGroupDeleteRequest,
+              onGroupCreate: openNewGroup,
+            }}
+          />
         </div>
       </div>
 
@@ -821,6 +566,7 @@ export function HostsDashboard() {
         <GroupDeleteDialog
           group={deletingGroup.group}
           hostCount={deletingGroup.hostCount}
+          subgroupCount={deletingGroup.subgroupCount}
           onConfirm={(deleteHosts) => void handleGroupDeleteConfirm(deleteHosts)}
           onCancel={() => setDeletingGroup(null)}
         />

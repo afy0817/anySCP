@@ -12,6 +12,9 @@ interface GroupsState {
   updateGroup: (group: HostGroup) => Promise<void>;
   deleteGroup: (id: string) => Promise<void>;
   reorderGroups: (newOrder: HostGroup[]) => Promise<void>;
+  /** Move a group under `parentId` (`null` = top level), optionally applying
+   *  `newOrder` in the same step. */
+  moveGroup: (id: string, parentId: string | null, newOrder?: HostGroup[]) => Promise<void>;
 }
 
 export const useGroupsStore = create<GroupsState>((set, get) => ({
@@ -69,6 +72,21 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
       await invoke("reorder_groups", { orderedIds: newOrder.map((g) => g.id) });
     } catch (err) {
       set({ groups: previous });
+      throw err;
+    }
+  },
+
+  // Optimistic like reorderGroups, but the move and the reorder are two
+  // backend writes, so on failure reload what actually got stored.
+  moveGroup: async (id, parentId, newOrder) => {
+    const base = newOrder ?? get().groups;
+    set({ groups: base.map((g) => (g.id === id ? { ...g, parent_id: parentId } : g)) });
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("move_group", { id, parentId });
+      if (newOrder) await invoke("reorder_groups", { orderedIds: newOrder.map((g) => g.id) });
+    } catch (err) {
+      await get().loadGroups();
       throw err;
     }
   },

@@ -27,11 +27,13 @@
     "newGroup": "New Group",
     "import": "Import",
     "importTitle": "Import from SSH Config",
-    "groupsHeading": "Groups",
     "hostsHeading": "Hosts",
-    "cloudStorageHeading": "Cloud Storage",
-    "backToAllHosts": "Back to all hosts",
-    "allHosts": "All Hosts",
+    "groupPath": "Group path",
+    "view": {
+      "label": "View",
+      "tree": "Tree",
+      "folder": "Folders"
+    },
     "empty": {
       "noMatch": "No hosts match “{{query}}”",
       "groupEmpty": "No hosts in this group yet.",
@@ -41,6 +43,7 @@
       "hostOrderFailed": "Couldn't save the new host order — reverted.",
       "groupOrderFailed": "Couldn't save the new group order — reverted.",
       "s3OrderFailed": "Couldn't save the new connection order — reverted.",
+      "moveFailed": "Couldn't move \"{{name}}\".",
       "deleteHostFailed": "Couldn't delete \"{{label}}\".",
       "deleteGroupFailed": "Couldn't delete \"{{name}}\".",
       "duplicateHostFailed": "Couldn't duplicate \"{{label}}\".",
@@ -91,6 +94,7 @@
   },
   "groupCard": {
     "deleteGroup": "Delete Group",
+    "newSubgroup": "New Subgroup",
     "hostCount_one": "{{count}} host",
     "hostCount_other": "{{count}} hosts"
   },
@@ -101,9 +105,15 @@
     "emptyMessage": "This empty group will be permanently removed.",
     "containsHosts_one": "This group contains {{count}} host.",
     "containsHosts_other": "This group contains {{count}} hosts.",
+    "containsSubgroups_one": "It has {{count}} subgroup.",
+    "containsSubgroups_other": "It has {{count}} subgroups.",
     "alsoDeleteHosts_one": "Also delete all {{count}} host in this group",
     "alsoDeleteHosts_other": "Also delete all {{count}} hosts in this group",
-    "uncheckedHint": "Unchecked: hosts will be moved out of the group"
+    "alsoDeleteSubgroups_one": "Also delete its {{count}} subgroup",
+    "alsoDeleteSubgroups_other": "Also delete all {{count}} subgroups",
+    "alsoDeleteAll_one": "Also delete all subgroups and the {{count}} host inside",
+    "alsoDeleteAll_other": "Also delete all subgroups and the {{count}} hosts inside",
+    "uncheckedHint": "Unchecked: hosts and subgroups inside move up one level"
   },
   "groupModal": {
     "titleNew": "New Group",

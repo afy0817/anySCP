@@ -6,7 +6,9 @@ import { ModalShell, BTN_GHOST, BTN_DANGER } from "../shared/ModalShell";
 
 interface GroupDeleteDialogProps {
   group: HostGroup;
+  /** Hosts + S3 connections in the group and all its subgroups. */
   hostCount: number;
+  subgroupCount: number;
   onConfirm: (deleteHosts: boolean) => void;
   onCancel: () => void;
 }
@@ -14,15 +16,22 @@ interface GroupDeleteDialogProps {
 export function GroupDeleteDialog({
   group,
   hostCount,
+  subgroupCount,
   onConfirm,
   onCancel,
 }: GroupDeleteDialogProps) {
   const { t } = useTranslation(["dashboard", "common"]);
   const [deleteHosts, setDeleteHosts] = useState(false);
   const checkboxId = useId();
+  const hasContents = hostCount > 0 || subgroupCount > 0;
 
   const confirmLabel =
-    hostCount > 0 && deleteHosts ? t("groupDelete.confirmGroupAndHosts") : t("groupDelete.confirmGroup");
+    hasContents && deleteHosts ? t("groupDelete.confirmGroupAndHosts") : t("groupDelete.confirmGroup");
+
+  let alsoDeleteLabel: string;
+  if (subgroupCount === 0) alsoDeleteLabel = t("groupDelete.alsoDeleteHosts", { count: hostCount });
+  else if (hostCount === 0) alsoDeleteLabel = t("groupDelete.alsoDeleteSubgroups", { count: subgroupCount });
+  else alsoDeleteLabel = t("groupDelete.alsoDeleteAll", { count: hostCount });
 
   return (
     <ModalShell
@@ -46,12 +55,16 @@ export function GroupDeleteDialog({
     >
       <div className="flex flex-col gap-3">
         <p className="text-[length:var(--text-sm)] text-text-secondary">
-          {hostCount === 0
-            ? t("groupDelete.emptyMessage")
-            : t("groupDelete.containsHosts", { count: hostCount })}
+          {!hasContents && t("groupDelete.emptyMessage")}
+          {hostCount > 0 && (
+            <span className="block">{t("groupDelete.containsHosts", { count: hostCount })}</span>
+          )}
+          {subgroupCount > 0 && (
+            <span className="block">{t("groupDelete.containsSubgroups", { count: subgroupCount })}</span>
+          )}
         </p>
 
-        {hostCount > 0 && (
+        {hasContents && (
           <label
             htmlFor={checkboxId}
             className="flex items-start gap-2.5 cursor-pointer rounded-lg px-3 py-2.5 bg-bg-subtle border border-border hover:border-border-focus transition-colors duration-[var(--duration-fast)]"
@@ -64,7 +77,7 @@ export function GroupDeleteDialog({
               className="mt-0.5 h-3.5 w-3.5 rounded shrink-0 cursor-pointer accent-[oklch(0.650_0.200_25)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             />
             <span className="text-[length:var(--text-xs)] text-text-secondary leading-snug select-none">
-              {t("groupDelete.alsoDeleteHosts", { count: hostCount })}
+              {alsoDeleteLabel}
               <span className="block text-text-muted mt-0.5">
                 {t("groupDelete.uncheckedHint")}
               </span>

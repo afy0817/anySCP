@@ -47,7 +47,8 @@
 | Endpoint / Region | 엔드포인트 / 리전 |
 | Access key / Secret key | 액세스 키 / 시크릿 키 |
 | Presigned URL | 미리 서명된 URL |
-| Group / Tag / Color | 그룹 / 태그 / 색상 |
+| Group (호스트를 묶는 단위) / Subgroup | 폴더 / 하위 폴더 (파일 권한의 Group 은 아래처럼 그룹) |
+| Tag / Color | 태그 / 색상 |
 | Dashboard | 대시보드 |
 | History | 기록 |
 | Settings / Preferences | 설정 |

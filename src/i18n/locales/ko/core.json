@@ -6,7 +6,7 @@
     "downloadFailed": "업데이트를 다운로드하지 못했어요"
   },
   "groups": {
-    "loadFailed": "그룹을 불러오지 못했어요"
+    "loadFailed": "폴더를 불러오지 못했어요"
   },
   "hosts": {
     "loadFailed": "호스트를 불러오지 못했어요",

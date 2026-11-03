@@ -7,7 +7,8 @@ import { useHostsStore } from "../../stores/hosts-store";
 import { useGroupsStore } from "../../stores/groups-store";
 import { useSessionStore } from "../../stores/session-store";
 import { useTabStore } from "../../stores/tab-store";
-import type { SavedHost, HostConfig, StoredCredential } from "../../types";
+import type { SavedHost, HostConfig, StoredCredential, HostGroup } from "../../types";
+import { groupOptions } from "../../lib/host-tree";
 import { HOST_COLORS } from "./HostCard";
 import { CustomSelect } from "../shared/CustomSelect";
 
@@ -990,7 +991,7 @@ interface GroupSelectProps {
   id: string;
   value: string;
   onChange: (val: string) => void;
-  groups: { id: string; name: string; color: string }[];
+  groups: HostGroup[];
   disabled: boolean;
   inputClass: string;
 }
@@ -1007,10 +1008,7 @@ function GroupSelect({ id, value, onChange, groups, disabled }: GroupSelectProps
       data-testid="host-modal-group"
       options={[
         { value: "", label: t("hostEdit.fields.group.none") },
-        ...groups.map((g) => ({
-          value: g.id,
-          label: g.name,
-        })),
+        ...groupOptions(groups),
       ]}
     />
   );

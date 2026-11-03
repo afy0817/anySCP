@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { HostsDashboard } from "../HostsDashboard";
 import { useToastStore } from "../../../stores/toast-store";
+import { useHostBrowserStore } from "../../../stores/host-browser-store";
 import type { HostGroup, SavedHost } from "../../../types";
 
 const invoke = vi.fn();
@@ -24,6 +25,7 @@ const group: HostGroup = {
   default_username: null,
   created_at: "2026-01-01T00:00:00Z",
   updated_at: "2026-01-01T00:00:00Z",
+  parent_id: null,
 };
 
 // A member host: the dialog only offers the cascade checkbox for a non-empty
@@ -74,13 +76,17 @@ function mockBackend(cascade: () => Promise<unknown>) {
 }
 
 /** Render, then run the group card's Delete → cascade-checkbox → confirm flow. */
-async function deleteGroupWithHosts({ selectFirst = false } = {}) {
+async function deleteGroupWithHosts({ openFirst = false } = {}) {
   render(<HostsDashboard />);
   const card = await screen.findByTestId("group-card-g1");
-  // Clicking the card filters the host list to that group; a drag needs a 5px
-  // move to activate, so a plain click just selects.
-  if (selectFirst) fireEvent.click(card);
-  fireEvent.contextMenu(card);
+  // Clicking the card opens the group in folder view (a drag needs a 5px move
+  // to activate, so a plain click just opens). Its card is gone inside it, so
+  // delete it from the tree view's row instead.
+  if (openFirst) {
+    fireEvent.click(card);
+    fireEvent.click(screen.getByTestId("host-view-tree"));
+  }
+  fireEvent.contextMenu(await screen.findByTestId("group-card-g1"));
   fireEvent.click(screen.getByText("Delete Group"));
   fireEvent.click(await screen.findByRole("checkbox"));
   fireEvent.click(screen.getByRole("button", { name: /delete group & hosts/i }));
@@ -92,6 +98,7 @@ describe("HostsDashboard group delete", () => {
   beforeEach(() => {
     invoke.mockReset();
     useToastStore.setState({ toasts: [] });
+    useHostBrowserStore.setState({ viewMode: "folder", folderId: null, collapsed: new Set() });
   });
 
   it("routes the cascade choice to delete_group_with_hosts and reloads", async () => {
@@ -118,24 +125,22 @@ describe("HostsDashboard group delete", () => {
     await waitFor(() => expect(toastMessages()).toEqual(['Couldn\'t delete "prod".']));
   });
 
-  it("keeps the group filter when the cascade fails", async () => {
+  it("keeps the open group when the cascade fails", async () => {
     mockBackend(() => Promise.reject(new Error("db locked")));
 
-    await deleteGroupWithHosts({ selectFirst: true });
+    await deleteGroupWithHosts({ openFirst: true });
 
     await waitFor(() => expect(toastMessages()).toEqual(['Couldn\'t delete "prod".']));
-    // Clearing the filter in `finally` reset the sidebar to all hosts even
-    // though "prod" was still there — the delete the user was told had failed.
-    expect(screen.getByTestId("group-card-g1")).toHaveAttribute("aria-pressed", "true");
+    // Leaving the group in `finally` moved folder view out of "prod" even
+    // though it was still there — the delete the user was told had failed.
+    expect(useHostBrowserStore.getState().folderId).toBe("g1");
   });
 
-  it("clears the group filter once the cascade succeeds", async () => {
+  it("leaves the deleted group once the cascade succeeds", async () => {
     mockBackend(() => Promise.resolve(undefined));
 
-    await deleteGroupWithHosts({ selectFirst: true });
+    await deleteGroupWithHosts({ openFirst: true });
 
-    await waitFor(() =>
-      expect(screen.getByTestId("group-card-g1")).toHaveAttribute("aria-pressed", "false"),
-    );
+    await waitFor(() => expect(useHostBrowserStore.getState().folderId).toBeNull());
   });
 });

@@ -197,6 +197,8 @@ pub struct HostGroup {
     pub default_username: Option<String>,
     pub created_at: String,
     pub updated_at: String,
+    /// Enclosing group; `None` for a top-level group.
+    pub parent_id: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -589,6 +591,19 @@ impl HostDb {
                 [],
             )?;
             tracing::info!("migration 14→15 applied: added s3_connections.sort_order");
+        }
+
+        // Nested groups (fork-only). Kept outside the schema_version chain so it
+        // never takes a version number an upstream migration may claim later.
+        let has_parent_id: bool = conn
+            .prepare("SELECT parent_id FROM host_groups LIMIT 0")
+            .is_ok();
+        if !has_parent_id {
+            conn.execute(
+                "ALTER TABLE host_groups ADD COLUMN parent_id TEXT REFERENCES host_groups(id) ON DELETE SET NULL",
+                [],
+            )?;
+            tracing::info!("fork migration applied: added host_groups.parent_id");
         }
 
         Ok(())
@@ -1079,8 +1094,8 @@ impl HostDb {
             .lock()
             .map_err(|e| DbError::InitError(format!("db lock poisoned: {e}")))?;
         conn.execute(
-            "INSERT INTO host_groups (id, name, color, icon, sort_order, default_username, created_at, updated_at)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            "INSERT INTO host_groups (id, name, color, icon, sort_order, default_username, created_at, updated_at, parent_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
             params![
                 group.id,
                 group.name,
@@ -1090,6 +1105,7 @@ impl HostDb {
                 group.default_username,
                 group.created_at,
                 group.updated_at,
+                group.parent_id,
             ],
         )?;
         Ok(())
@@ -1162,7 +1178,7 @@ impl HostDb {
             .lock()
             .map_err(|e| DbError::InitError(format!("db lock poisoned: {e}")))?;
         let mut stmt = conn.prepare(
-            "SELECT id, name, color, icon, sort_order, default_username, created_at, updated_at
+            "SELECT id, name, color, icon, sort_order, default_username, created_at, updated_at, parent_id
              FROM host_groups
              ORDER BY sort_order ASC, name ASC",
         )?;
@@ -1177,39 +1193,60 @@ impl HostDb {
                 default_username: row.get(5)?,
                 created_at: row.get(6)?,
                 updated_at: row.get(7)?,
+                parent_id: row.get(8)?,
             })
         })?;
 
         rows.collect::<Result<Vec<_>, _>>().map_err(DbError::from)
     }
 
-    /// Delete a group by id.  Due to the `ON DELETE SET NULL` foreign-key
-    /// constraint, any hosts that belonged to this group are orphaned (their
-    /// `group_id` is set to NULL) rather than deleted.
+    /// Delete a group by id.  Its subgroups, hosts and S3 connections move up
+    /// to the deleted group's parent (top level when it had none) rather than
+    /// being deleted.
     #[instrument(skip(self), fields(id = %id))]
     pub fn delete_group(&self, id: &str) -> Result<(), DbError> {
-        let conn = self
+        let mut conn = self
             .conn
             .lock()
             .map_err(|e| DbError::InitError(format!("db lock poisoned: {e}")))?;
-        let affected = conn.execute("DELETE FROM host_groups WHERE id = ?1", params![id])?;
-        if affected == 0 {
-            return Err(DbError::NotFound(id.to_string()));
-        }
+        let tx = conn.transaction()?;
+        let parent_id: Option<String> = tx
+            .query_row(
+                "SELECT parent_id FROM host_groups WHERE id = ?1",
+                params![id],
+                |r| r.get(0),
+            )
+            .optional()?
+            .ok_or_else(|| DbError::NotFound(id.to_string()))?;
+        tx.execute(
+            "UPDATE host_groups SET parent_id = ?2 WHERE parent_id = ?1",
+            params![id, parent_id],
+        )?;
+        tx.execute(
+            "UPDATE saved_hosts SET group_id = ?2 WHERE group_id = ?1",
+            params![id, parent_id],
+        )?;
+        tx.execute(
+            "UPDATE s3_connections SET group_id = ?2 WHERE group_id = ?1",
+            params![id, parent_id],
+        )?;
+        tx.execute("DELETE FROM host_groups WHERE id = ?1", params![id])?;
+        tx.commit()?;
         Ok(())
     }
 
-    /// Delete a group and ALL hosts that belong to it. Returns the ids of the
-    /// deleted hosts so the caller can purge their keychain secrets (the DB
-    /// layer never touches the vault).
+    /// Delete a group, every subgroup below it, and ALL hosts and S3
+    /// connections inside any of them. Returns the deleted host and S3 ids so
+    /// the caller can purge their keychain secrets (the DB layer never touches
+    /// the vault).
     ///
-    /// All three statements run in one transaction. Without it, a failure on the
+    /// All statements run in one transaction. Without it, a failure on the
     /// group DELETE would return `NotFound` with the host rows already gone —
     /// and the caller short-circuits before the purge, orphaning exactly the
     /// secrets this path exists to clean up. The group's existence is checked
     /// first for the same reason: nothing is deleted for an unknown id.
     #[instrument(skip(self), fields(id = %id))]
-    pub fn delete_group_with_hosts(&self, id: &str) -> Result<Vec<String>, DbError> {
+    pub fn delete_group_with_hosts(&self, id: &str) -> Result<ResetKeys, DbError> {
         let mut conn = self
             .conn
             .lock()
@@ -1229,21 +1266,107 @@ impl HostDb {
             return Err(DbError::NotFound(id.to_string()));
         }
 
-        // Collect the member host ids BEFORE deleting, so their credentials can
-        // be purged from the keychain (a raw cascade delete would orphan them).
-        let host_ids: Vec<String> = {
-            let mut stmt = tx.prepare("SELECT id FROM saved_hosts WHERE group_id = ?1")?;
+        // The group itself plus every subgroup below it.
+        let group_ids: Vec<String> = {
+            let mut stmt = tx.prepare(
+                "WITH RECURSIVE sub(id) AS (
+                     SELECT ?1
+                     UNION
+                     SELECT g.id FROM host_groups g JOIN sub ON g.parent_id = sub.id
+                 )
+                 SELECT id FROM sub",
+            )?;
             let rows = stmt.query_map(params![id], |r| r.get::<_, String>(0))?;
             rows.collect::<Result<Vec<_>, _>>()?
         };
-        // Delete hosts first (before the group, since FK is ON DELETE SET NULL)
-        tx.execute("DELETE FROM saved_hosts WHERE group_id = ?1", params![id])?;
-        tx.execute("DELETE FROM host_groups WHERE id = ?1", params![id])?;
+
+        // Collect the member ids BEFORE deleting, so their credentials can be
+        // purged from the keychain (a raw cascade delete would orphan them).
+        let mut keys = ResetKeys::default();
+        for gid in &group_ids {
+            let mut stmt = tx.prepare("SELECT id FROM saved_hosts WHERE group_id = ?1")?;
+            let rows = stmt.query_map(params![gid], |r| r.get::<_, String>(0))?;
+            keys.host_ids.extend(rows.collect::<Result<Vec<_>, _>>()?);
+            let mut stmt = tx.prepare("SELECT id FROM s3_connections WHERE group_id = ?1")?;
+            let rows = stmt.query_map(params![gid], |r| r.get::<_, String>(0))?;
+            keys.s3_ids.extend(rows.collect::<Result<Vec<_>, _>>()?);
+        }
+        // Delete members first (before the groups, since FK is ON DELETE SET NULL)
+        for gid in &group_ids {
+            tx.execute("DELETE FROM saved_hosts WHERE group_id = ?1", params![gid])?;
+            tx.execute("DELETE FROM s3_connections WHERE group_id = ?1", params![gid])?;
+        }
+        for gid in &group_ids {
+            tx.execute("DELETE FROM host_groups WHERE id = ?1", params![gid])?;
+        }
 
         // Commit before returning the ids: the caller purges keychain secrets
-        // for these hosts, so the rows must actually be gone first.
+        // for these rows, so they must actually be gone first.
         tx.commit()?;
-        Ok(host_ids)
+        Ok(keys)
+    }
+
+    /// Move group `id` under `parent_id` (`None` = top level). Moving a group
+    /// under itself or one of its subgroups is rejected.
+    #[instrument(skip(self), fields(id = %id))]
+    pub fn set_group_parent(&self, id: &str, parent_id: Option<&str>) -> Result<(), DbError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| DbError::InitError(format!("db lock poisoned: {e}")))?;
+        check_group_parent(&conn, id, parent_id)?;
+        let affected = conn.execute(
+            "UPDATE host_groups SET parent_id = ?2 WHERE id = ?1",
+            params![id, parent_id],
+        )?;
+        if affected == 0 {
+            return Err(DbError::NotFound(id.to_string()));
+        }
+        Ok(())
+    }
+
+    /// Move a saved host into `group_id` (`None` = top level).
+    #[instrument(skip(self), fields(id = %id))]
+    pub fn set_host_group(&self, id: &str, group_id: Option<&str>) -> Result<(), DbError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| DbError::InitError(format!("db lock poisoned: {e}")))?;
+        let affected = conn.execute(
+            "UPDATE saved_hosts SET group_id = ?2 WHERE id = ?1",
+            params![id, group_id],
+        )?;
+        if affected == 0 {
+            return Err(DbError::NotFound(id.to_string()));
+        }
+        Ok(())
+    }
+
+    /// Move an S3 connection into `group_id` (`None` = top level).
+    /// `s3_connections.group_id` has no foreign key, so the group is checked here.
+    #[instrument(skip(self), fields(id = %id))]
+    pub fn set_s3_group(&self, id: &str, group_id: Option<&str>) -> Result<(), DbError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| DbError::InitError(format!("db lock poisoned: {e}")))?;
+        if let Some(gid) = group_id {
+            let exists = conn
+                .query_row("SELECT 1 FROM host_groups WHERE id = ?1", params![gid], |_| Ok(()))
+                .optional()?
+                .is_some();
+            if !exists {
+                return Err(DbError::NotFound(gid.to_string()));
+            }
+        }
+        let affected = conn.execute(
+            "UPDATE s3_connections SET group_id = ?2 WHERE id = ?1",
+            params![id, group_id],
+        )?;
+        if affected == 0 {
+            return Err(DbError::NotFound(id.to_string()));
+        }
+        Ok(())
     }
 
     // -----------------------------------------------------------------------
@@ -2027,7 +2150,8 @@ impl HostDb {
     }
 }
 
-/// Keychain keys whose secrets must be purged after a [`HostDb::factory_reset`].
+/// Keychain keys whose secrets must be purged after a [`HostDb::factory_reset`]
+/// or [`HostDb::delete_group_with_hosts`].
 /// Host credentials are keyed by `host_id`; S3 credentials by `s3:{id}`.
 #[derive(Debug, Default)]
 pub struct ResetKeys {
@@ -2057,6 +2181,28 @@ fn table_columns(conn: &Connection, table: &str) -> Result<Vec<String>, DbError>
         .query_map([], |row| row.get::<_, String>(1))?
         .collect::<Result<Vec<String>, _>>()?;
     Ok(cols)
+}
+
+/// Reject `parent_id` as the parent of group `id` when it is `id` itself or one
+/// of its subgroups — the moved branch would become a loop cut off from the tree.
+fn check_group_parent(conn: &Connection, id: &str, parent_id: Option<&str>) -> Result<(), DbError> {
+    let mut cursor = parent_id.map(str::to_string);
+    while let Some(cur) = cursor {
+        if cur == id {
+            return Err(DbError::Validation(format!(
+                "group {id} cannot be moved into itself or one of its subgroups"
+            )));
+        }
+        cursor = conn
+            .query_row(
+                "SELECT parent_id FROM host_groups WHERE id = ?1",
+                params![cur],
+                |r| r.get::<_, Option<String>>(0),
+            )
+            .optional()?
+            .flatten();
+    }
+    Ok(())
 }
 
 /// Create an owner-only (0700 on Unix) temp directory for a short-lived,
@@ -2127,6 +2273,14 @@ mod tests {
             default_username: None,
             created_at: "2026-01-01T00:00:00".to_string(),
             updated_at: "2026-01-01T00:00:00".to_string(),
+            parent_id: None,
+        }
+    }
+
+    fn sample_subgroup(id: &str, parent: &str) -> HostGroup {
+        HostGroup {
+            parent_id: Some(parent.to_string()),
+            ..sample_group(id)
         }
     }
 
@@ -2143,13 +2297,14 @@ mod tests {
         // A host outside the group must survive.
         db.save_host(&sample_host("host-3")).expect("save_host");
 
-        let mut ids = db
+        let mut keys = db
             .delete_group_with_hosts("grp-1")
             .expect("delete_group_with_hosts");
-        ids.sort();
+        keys.host_ids.sort();
 
         // The caller purges the keychain for exactly these ids.
-        assert_eq!(ids, vec!["host-1".to_string(), "host-2".to_string()]);
+        assert_eq!(keys.host_ids, vec!["host-1".to_string(), "host-2".to_string()]);
+        assert!(keys.s3_ids.is_empty());
         let remaining = db.list_hosts().expect("list_hosts");
         assert_eq!(remaining.len(), 1);
         assert_eq!(remaining[0].id, "host-3");
@@ -2551,6 +2706,158 @@ mod tests {
         let (db, _dir) = test_db();
         let err = db.delete_group("ghost-group").expect_err("should fail");
         assert!(matches!(err, DbError::NotFound(_)));
+    }
+
+    #[test]
+    fn subgroup_parent_round_trips() {
+        let (db, _dir) = test_db();
+        db.create_group(&sample_group("top")).expect("create top");
+        db.create_group(&sample_subgroup("child", "top")).expect("create child");
+
+        let all = db.list_groups().expect("list_groups");
+        let child = all.iter().find(|g| g.id == "child").expect("child");
+        assert_eq!(child.parent_id.as_deref(), Some("top"));
+        let top = all.iter().find(|g| g.id == "top").expect("top");
+        assert!(top.parent_id.is_none());
+    }
+
+    #[test]
+    fn create_group_under_unknown_parent_fails() {
+        let (db, _dir) = test_db();
+        let err = db
+            .create_group(&sample_subgroup("child", "ghost"))
+            .expect_err("FK must reject a dangling parent");
+        assert!(matches!(err, DbError::Sqlite(_)), "got {err:?}");
+    }
+
+    #[test]
+    fn set_group_parent_moves_group_under_another_and_back() {
+        let (db, _dir) = test_db();
+        db.create_group(&sample_group("a")).expect("create a");
+        db.create_group(&sample_group("b")).expect("create b");
+
+        db.set_group_parent("b", Some("a")).expect("move b into a");
+        let all = db.list_groups().expect("list_groups");
+        let b = all.iter().find(|g| g.id == "b").expect("b");
+        assert_eq!(b.parent_id.as_deref(), Some("a"));
+
+        db.set_group_parent("b", None).expect("move b to top level");
+        let all = db.list_groups().expect("list_groups");
+        let b = all.iter().find(|g| g.id == "b").expect("b");
+        assert!(b.parent_id.is_none());
+
+        let err = db.set_group_parent("ghost", None).expect_err("unknown group");
+        assert!(matches!(err, DbError::NotFound(_)), "got {err:?}");
+    }
+
+    #[test]
+    fn set_group_parent_rejects_moving_into_itself_or_a_descendant() {
+        let (db, _dir) = test_db();
+        db.create_group(&sample_group("a")).expect("create a");
+        db.create_group(&sample_subgroup("b", "a")).expect("create b");
+        db.create_group(&sample_subgroup("c", "b")).expect("create c");
+
+        for parent in ["a", "b", "c"] {
+            let err = db
+                .set_group_parent("a", Some(parent))
+                .expect_err("a loop must be rejected");
+            assert!(matches!(err, DbError::Validation(_)), "got {err:?}");
+        }
+        // Nothing moved.
+        let all = db.list_groups().expect("list_groups");
+        let a = all.iter().find(|g| g.id == "a").expect("a");
+        assert!(a.parent_id.is_none());
+    }
+
+    #[test]
+    fn delete_group_moves_contents_to_parent() {
+        let (db, _dir) = test_db();
+        db.create_group(&sample_group("top")).expect("create top");
+        db.create_group(&sample_subgroup("mid", "top")).expect("create mid");
+        db.create_group(&sample_subgroup("leaf", "mid")).expect("create leaf");
+        let h = SavedHost {
+            group_id: Some("mid".to_string()),
+            ..sample_host("h-mid")
+        };
+        db.save_host(&h).expect("save_host");
+        save_s3(&db, "s-mid", "bucket");
+        db.set_s3_group("s-mid", Some("mid")).expect("set_s3_group");
+
+        db.delete_group("mid").expect("delete_group");
+
+        let groups = db.list_groups().expect("list_groups");
+        assert_eq!(groups.len(), 2);
+        let leaf = groups.iter().find(|g| g.id == "leaf").expect("leaf");
+        assert_eq!(leaf.parent_id.as_deref(), Some("top"));
+        let host = db.get_host("h-mid").expect("get").expect("Some");
+        assert_eq!(host.group_id.as_deref(), Some("top"));
+        let s3 = db.list_s3_connections().expect("list_s3");
+        assert_eq!(s3[0].group_id.as_deref(), Some("top"));
+    }
+
+    #[test]
+    fn delete_group_with_hosts_removes_the_whole_subtree() {
+        let (db, _dir) = test_db();
+        db.create_group(&sample_group("top")).expect("create top");
+        db.create_group(&sample_subgroup("mid", "top")).expect("create mid");
+        db.create_group(&sample_subgroup("leaf", "mid")).expect("create leaf");
+        db.create_group(&sample_group("other")).expect("create other");
+        for (host, group) in [("h-top", "top"), ("h-leaf", "leaf"), ("h-other", "other")] {
+            let h = SavedHost {
+                group_id: Some(group.to_string()),
+                ..sample_host(host)
+            };
+            db.save_host(&h).expect("save_host");
+        }
+        save_s3(&db, "s-mid", "bucket");
+        db.set_s3_group("s-mid", Some("mid")).expect("set_s3_group");
+        save_s3(&db, "s-root", "bucket");
+
+        let mut keys = db.delete_group_with_hosts("top").expect("delete");
+        keys.host_ids.sort();
+
+        assert_eq!(keys.host_ids, vec!["h-leaf".to_string(), "h-top".to_string()]);
+        assert_eq!(keys.s3_ids, vec!["s-mid".to_string()]);
+        let groups = db.list_groups().expect("list_groups");
+        assert_eq!(groups.len(), 1);
+        assert_eq!(groups[0].id, "other");
+        let hosts = db.list_hosts().expect("list_hosts");
+        assert_eq!(hosts.len(), 1);
+        assert_eq!(hosts[0].id, "h-other");
+        let s3 = db.list_s3_connections().expect("list_s3");
+        assert_eq!(s3.len(), 1);
+        assert_eq!(s3[0].id, "s-root");
+    }
+
+    #[test]
+    fn set_host_group_moves_and_rejects_unknown_ids() {
+        let (db, _dir) = test_db();
+        db.create_group(&sample_group("g")).expect("create g");
+        db.save_host(&sample_host("h")).expect("save_host");
+
+        db.set_host_group("h", Some("g")).expect("move into g");
+        let host = db.get_host("h").expect("get").expect("Some");
+        assert_eq!(host.group_id.as_deref(), Some("g"));
+
+        db.set_host_group("h", None).expect("move to top level");
+        let host = db.get_host("h").expect("get").expect("Some");
+        assert!(host.group_id.is_none());
+
+        let err = db.set_host_group("ghost", None).expect_err("unknown host");
+        assert!(matches!(err, DbError::NotFound(_)), "got {err:?}");
+        let err = db.set_host_group("h", Some("ghost")).expect_err("unknown group");
+        assert!(matches!(err, DbError::Sqlite(_)), "got {err:?}");
+    }
+
+    #[test]
+    fn set_s3_group_rejects_unknown_ids() {
+        let (db, _dir) = test_db();
+        save_s3(&db, "s", "bucket");
+
+        let err = db.set_s3_group("s", Some("ghost")).expect_err("unknown group");
+        assert!(matches!(err, DbError::NotFound(_)), "got {err:?}");
+        let err = db.set_s3_group("ghost", None).expect_err("unknown connection");
+        assert!(matches!(err, DbError::NotFound(_)), "got {err:?}");
     }
 
     // -----------------------------------------------------------------------

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { useS3Store } from "../../stores/s3-store";
 import { ModalShell, BTN_GHOST, BTN_SECONDARY, BTN_PRIMARY } from "../shared/ModalShell";
 import { useGroupsStore } from "../../stores/groups-store";
+import { groupOptions } from "../../lib/host-tree";
 import { CustomSelect } from "../shared/CustomSelect";
 import { S3_PROVIDERS } from "../../types";
 import type { S3Provider, S3Connection } from "../../types";
@@ -310,7 +311,7 @@ export function S3ConnectDialog({ onClose, editConnection }: S3ConnectDialogProp
                 placeholder={t("dialog.fields.noGroup")}
                 options={[
                   { value: "", label: t("dialog.fields.noGroup") },
-                  ...groups.map((g) => ({ value: g.id, label: g.name })),
+                  ...groupOptions(groups),
                 ]}
               />
             </div>
