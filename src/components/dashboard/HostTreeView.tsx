@@ -168,6 +168,7 @@ function RootRow({
         aria-level={1}
         aria-expanded={expanded}
         data-testid="host-tree-root"
+        title={t("hostsPage.hostsHeading")}
         onClick={onToggle}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
