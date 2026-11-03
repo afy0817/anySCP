@@ -20,7 +20,9 @@
     "startFailed": "Tunnel failed to start"
   },
   "editor": {
-    "openFailed": "Couldn't open the editor. Configure one in Settings → Editors."
+    "openFailed": "Couldn't open the editor. Configure one in Settings → Editors.",
+    "downloadingToOpen": "Downloading \"{{name}}\" to open…",
+    "alreadyOpening": "\"{{name}}\" is already opening…"
   },
   "time": {
     "justNow": "just now",

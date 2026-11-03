@@ -54,7 +54,10 @@
     "placeholder": "선택…"
   },
   "toaster": {
-    "dismiss": "닫기"
+    "dismiss": "닫기",
+    "minimize": "최소화",
+    "showProgress": "다운로드 진행 보기",
+    "showDetails": "자세히 보기"
   },
   "s3Providers": {
     "custom": "사용자 지정 S3 호환"

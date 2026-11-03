@@ -40,6 +40,8 @@
       "descriptionPlaceholder": "Production read replica for analytics...",
       "localPort": "Local Port",
       "remotePort": "Remote Port",
+      "destinationHost": "Destination Host",
+      "destinationHostHint": "Resolved from the SSH server. Keep <mono>localhost</mono> for a service on the server itself, or enter another host it can reach (e.g. <mono>db.internal</mono>).",
       "bindAddress": "Bind Address",
       "autoStart": "Auto-start",
       "autoStartHint": "Start tunnel when host connects"

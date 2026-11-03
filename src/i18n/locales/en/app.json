@@ -55,7 +55,10 @@
     "placeholder": "Select..."
   },
   "toaster": {
-    "dismiss": "Dismiss"
+    "dismiss": "Dismiss",
+    "minimize": "Minimize",
+    "showProgress": "Show download progress",
+    "showDetails": "Show details"
   },
   "s3Providers": {
     "custom": "Custom S3-Compatible"

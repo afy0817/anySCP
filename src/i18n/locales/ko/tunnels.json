@@ -40,6 +40,8 @@
       "descriptionPlaceholder": "분석용 운영 DB 읽기 복제본...",
       "localPort": "로컬 포트",
       "remotePort": "원격 포트",
+      "destinationHost": "목적지 호스트",
+      "destinationHostHint": "SSH 서버 기준으로 찾아가요. 서버 자체의 서비스면 <mono>localhost</mono> 그대로 두고, 서버에서 닿는 다른 호스트면 그 주소를 넣어요 (예: <mono>db.internal</mono>)",
       "bindAddress": "바인드 주소",
       "autoStart": "자동 시작",
       "autoStartHint": "호스트에 연결되면 터널을 자동으로 시작해요"

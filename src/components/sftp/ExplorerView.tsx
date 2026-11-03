@@ -13,7 +13,7 @@ import { LocalPane } from "./LocalPane";
 import type { PaneTransfer } from "../explorer/ExplorerFileTable";
 import { createSftpProvider, toExplorerEntry } from "../../providers/sftp-provider";
 import { explorerInvoke, transferEventName, type Transport } from "../../lib/explorer-transport";
-import { editorLaunchErrorMessage } from "../../lib/editor-errors";
+import { openInEditorWithProgress } from "../../lib/open-in-editor";
 import { conflictingNames } from "../../lib/drop-conflicts";
 import { toast } from "../../stores/toast-store";
 import type { EditorConfig } from "../../stores/settings-store";
@@ -746,16 +746,12 @@ export function ExplorerView({ sessionId, transport = "sftp", isActive = true }:
   // ─── Edit in external editor ───────────────────────────────────────────────
 
   const handleEditInEditor = useCallback((entry: ExplorerEntry, editor?: EditorConfig) => {
-    void (async () => {
-      try {
-        await explorerInvoke(transport, "edit_external", sessionId, {
-          remotePath: entry.id,
-          editor: editor ?? null,
-        });
-      } catch (err) {
-        toast.error(editorLaunchErrorMessage(err));
-      }
-    })();
+    void openInEditorWithProgress(`${sessionId}\0${entry.id}`, entry.name, () =>
+      explorerInvoke(transport, "edit_external", sessionId, {
+        remotePath: entry.id,
+        editor: editor ?? null,
+      }),
+    );
   }, [sessionId, transport]);
 
   // ─── Paste / Move / Copy ─────────────────────────────────────────────────
