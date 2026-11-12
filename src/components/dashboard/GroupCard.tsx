@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { HostGroup } from "../../types";
 import { ContextMenu } from "../shared/ContextMenu";
 import { resolveGroupIcon } from "./GroupModal";
@@ -10,10 +10,11 @@ interface GroupCardProps {
   hostCount: number;
   isSelected: boolean;
   onSelect: (groupId: string) => void;
+  onEdit: (group: HostGroup) => void;
   onDelete: (groupId: string) => void;
 }
 
-export function GroupCard({ group, hostCount, isSelected, onSelect, onDelete }: GroupCardProps) {
+export function GroupCard({ group, hostCount, isSelected, onSelect, onEdit, onDelete }: GroupCardProps) {
   const { t } = useTranslation("dashboard");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number } | null>(null);
 
@@ -24,6 +25,11 @@ export function GroupCard({ group, hostCount, isSelected, onSelect, onDelete }: 
   };
 
   const contextItems = [
+    {
+      label: t("groupCard.editGroup"),
+      icon: Pencil,
+      onClick: () => onEdit(group),
+    },
     {
       label: t("groupCard.deleteGroup"),
       icon: Trash2,

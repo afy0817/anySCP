@@ -93,6 +93,7 @@
     "deleteMessage": "This connection will be permanently removed."
   },
   "groupCard": {
+    "editGroup": "Edit Group",
     "deleteGroup": "Delete Group",
     "newSubgroup": "New Subgroup",
     "hostCount_one": "{{count}} host",

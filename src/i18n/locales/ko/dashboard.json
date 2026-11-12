@@ -93,6 +93,7 @@
     "deleteMessage": "이 연결이 영구히 삭제돼요"
   },
   "groupCard": {
+    "editGroup": "폴더 편집",
     "deleteGroup": "폴더 삭제",
     "newSubgroup": "새 하위 폴더",
     "hostCount_other": "호스트 {{count}}개"

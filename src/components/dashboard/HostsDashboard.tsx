@@ -45,7 +45,7 @@ export function HostsDashboard() {
   const { t } = useTranslation("dashboard");
   const { hosts, loadHosts, recentConnections, loadRecent, duplicateHost, deleteHost } =
     useHostsStore();
-  const { groups, loadGroups, createGroup, deleteGroup } = useGroupsStore();
+  const { groups, loadGroups, createGroup, updateGroup, deleteGroup } = useGroupsStore();
   const setEditingHostId = useUiStore((s) => s.setEditingHostId);
   const viewMode = useHostBrowserStore((s) => s.viewMode);
   const openFolderId = useHostBrowserStore((s) => s.folderId);
@@ -57,6 +57,7 @@ export function HostsDashboard() {
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   // Group the new group goes under (`null` = top level).
   const [newGroupParentId, setNewGroupParentId] = useState<string | null>(null);
+  const [editingGroup, setEditingGroup] = useState<HostGroup | null>(null);
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [s3DialogOpen, setS3DialogOpen] = useState(false);
 
@@ -400,6 +401,11 @@ export function HostsDashboard() {
     setGroupModalOpen(false);
   };
 
+  const handleEditGroup = async (group: HostGroup, data: { name: string; color: string; icon: string }) => {
+    await updateGroup({ ...group, ...data, updated_at: new Date().toISOString() });
+    setEditingGroup(null);
+  };
+
   const openNewGroup = (parentId: string | null) => {
     setNewGroupParentId(parentId);
     setGroupModalOpen(true);
@@ -548,6 +554,7 @@ export function HostsDashboard() {
               onS3Duplicate: (c) => void handleS3Duplicate(c),
               onS3Delete: (c) => void handleS3Delete(c),
               onGroupDelete: handleGroupDeleteRequest,
+              onGroupEdit: setEditingGroup,
               onGroupCreate: openNewGroup,
             }}
           />
@@ -560,6 +567,16 @@ export function HostsDashboard() {
         onClose={() => setGroupModalOpen(false)}
         onSave={handleCreateGroup}
       />
+
+      {/* ── Group edit modal ── */}
+      {editingGroup && (
+        <GroupModal
+          open
+          onClose={() => setEditingGroup(null)}
+          onSave={(data) => handleEditGroup(editingGroup, data)}
+          initial={editingGroup}
+        />
+      )}
 
       {/* ── Group delete confirmation dialog ── */}
       {deletingGroup && (

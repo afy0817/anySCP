@@ -408,6 +408,11 @@ function GroupRow({
           onClose={() => setMenu(null)}
           items={[
             {
+              label: t("groupCard.editGroup"),
+              icon: Pencil,
+              onClick: () => actions.onGroupEdit(group),
+            },
+            {
               label: t("groupCard.newSubgroup"),
               icon: FolderPlus,
               onClick: () => actions.onGroupCreate(group.id),

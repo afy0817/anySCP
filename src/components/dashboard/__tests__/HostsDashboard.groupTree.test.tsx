@@ -1,6 +1,6 @@
 // Drives the hosts page's two group layouts — the collapsible tree and the
-// one-group-at-a-time folder view — plus search, subgroup creation and a
-// drag-and-drop move, all against a mocked backend.
+// one-group-at-a-time folder view — plus search, subgroup creation, group
+// editing and a drag-and-drop move, all against a mocked backend.
 
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
@@ -134,6 +134,42 @@ describe("folder view", () => {
       ),
     );
   });
+
+  it("edits a group from its card's context menu", async () => {
+    render(<HostsDashboard />);
+
+    fireEvent.contextMenu(await screen.findByTestId("group-card-prod"));
+    fireEvent.click(screen.getByText("Edit Group"));
+    const name = await screen.findByTestId("group-modal-name");
+    expect(name).toHaveValue("prod");
+    fireEvent.change(name, { target: { value: "production" } });
+    fireEvent.click(screen.getByTestId("group-modal-save"));
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("update_group", {
+        group: expect.objectContaining({ id: "prod", name: "production", sort_order: 0, parent_id: null }),
+      }),
+    );
+    await waitFor(() => expect(shown("group-modal")).toBe(false));
+  });
+
+  it("keeps the edit dialog open with the error when saving fails", async () => {
+    invoke.mockImplementation((cmd: string) => {
+      if (cmd === "update_group") return Promise.reject({ message: "db locked" });
+      if (cmd === "list_groups") return Promise.resolve(groups);
+      if (cmd === "list_hosts") return Promise.resolve(hosts);
+      return Promise.resolve([]);
+    });
+    render(<HostsDashboard />);
+
+    fireEvent.contextMenu(await screen.findByTestId("group-card-prod"));
+    fireEvent.click(screen.getByText("Edit Group"));
+    fireEvent.change(await screen.findByTestId("group-modal-name"), { target: { value: "production" } });
+    fireEvent.click(screen.getByTestId("group-modal-save"));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("db locked");
+    expect(shown("group-modal")).toBe(true);
+  });
 });
 
 describe("tree view", () => {
@@ -203,6 +239,23 @@ describe("tree view", () => {
         "create_group",
         expect.objectContaining({ group: expect.objectContaining({ name: "edge", parent_id: "web" }) }),
       ),
+    );
+  });
+
+  it("renames a subgroup from its context menu", async () => {
+    await renderTree();
+
+    fireEvent.contextMenu(screen.getByTestId("group-card-web"));
+    fireEvent.click(screen.getByText("Edit Group"));
+    const name = await screen.findByTestId("group-modal-name");
+    expect(name).toHaveValue("web");
+    fireEvent.change(name, { target: { value: "frontend" } });
+    fireEvent.click(screen.getByTestId("group-modal-save"));
+
+    await waitFor(() =>
+      expect(invoke).toHaveBeenCalledWith("update_group", {
+        group: expect.objectContaining({ id: "web", name: "frontend", parent_id: "prod" }),
+      }),
     );
   });
 

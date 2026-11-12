@@ -17,6 +17,12 @@ interface GroupsState {
   moveGroup: (id: string, parentId: string | null, newOrder?: HostGroup[]) => Promise<void>;
 }
 
+// reorder_groups stores each group's position as its sort_order. Mirror that
+// locally so a later update_group doesn't write back the pre-drag sort_order.
+function withSortOrder(order: HostGroup[]): HostGroup[] {
+  return order.map((g, idx) => ({ ...g, sort_order: idx }));
+}
+
 export const useGroupsStore = create<GroupsState>((set, get) => ({
   groups: [],
   loading: false,
@@ -66,7 +72,7 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
   // from what's stored.
   reorderGroups: async (newOrder) => {
     const previous = get().groups;
-    set({ groups: newOrder });
+    set({ groups: withSortOrder(newOrder) });
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("reorder_groups", { orderedIds: newOrder.map((g) => g.id) });
@@ -79,7 +85,7 @@ export const useGroupsStore = create<GroupsState>((set, get) => ({
   // Optimistic like reorderGroups, but the move and the reorder are two
   // backend writes, so on failure reload what actually got stored.
   moveGroup: async (id, parentId, newOrder) => {
-    const base = newOrder ?? get().groups;
+    const base = newOrder ? withSortOrder(newOrder) : get().groups;
     set({ groups: base.map((g) => (g.id === id ? { ...g, parent_id: parentId } : g)) });
     try {
       const { invoke } = await import("@tauri-apps/api/core");

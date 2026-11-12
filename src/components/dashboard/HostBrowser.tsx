@@ -50,6 +50,8 @@ export interface HostActions {
   onS3Duplicate: (conn: S3Connection) => void;
   onS3Delete: (conn: S3Connection) => void;
   onGroupDelete: (groupId: string) => void;
+  /** Open the edit dialog for a group's name, icon and color. */
+  onGroupEdit: (group: HostGroup) => void;
   /** Open the new-group dialog for a group under `parentId` (`null` = top level). */
   onGroupCreate: (parentId: string | null) => void;
 }

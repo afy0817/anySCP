@@ -49,6 +49,7 @@ export function HostFolderView({
             hostCount={counts.get(group.id) ?? 0}
             isSelected={false}
             onSelect={onOpen}
+            onEdit={actions.onGroupEdit}
             onDelete={actions.onGroupDelete}
           />
         </DndCard>
